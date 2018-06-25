@@ -1,0 +1,402 @@
+#! /usr/bin/env python 
+import sys
+import os
+
+# version check
+if sys.version_info[0] == 2:
+    if sys.version_info[1] > 6:
+#        print sys.version
+        import argparse
+    elif sys.version_info[1] > 3:
+#        print sys.version
+        import model.model_interpreter.argparse as argparse
+    else:
+        print "Your python version is too low."
+        sys.exit()
+
+# Write out nice usage message if called with -h or --help
+
+parser = argparse.ArgumentParser(description="(*) OPTIMASS Model-Card Reader && C++ Dictionary Code Generator")
+parser.add_argument('-d', dest="debug", action="store_true", default=False, help="debug mode")
+#parser.add_argument('input_card', help="input card")
+parser.add_argument('output_path_1', nargs='?', default="./model/dict_src", help="output path of dictionary src codes. If omitted, './model/dict_src' is used")
+parser.add_argument('output_path_2', nargs='?', default="./model/main_src", help="output path of main template src code. If omitted, './model/main_src' is used")
+
+
+args = parser.parse_args() #'-d input_card output_path'
+
+#print "args = " + args.output_path
+#if len(sys.argv) < 2:
+#    sys.exit()
+
+print ""
+print "(*) dictionary source file directory       = " + args.output_path_1
+print "(*) main skeleton interface code directory = " + args.output_path_2
+
+
+
+#if not os.path.isfile(args.input_card):
+#    print args.input_card + " does not exist."
+#    sys.exit()
+
+if args.debug:
+    print "Debug Mode"
+
+
+if sys.version_info[0] ==2:
+    if sys.version_info[1] > 6:
+#        print sys.version
+        from model.model_interpreter.CardReader import CardReader
+    else:
+#        print sys.version
+        from model.model_interpreter.CardReader26 import CardReader
+
+cr = CardReader(os.path.abspath("./model/model_card.xml"))
+
+print ""
+print "[[[ OptiMass Model Dictionary Code Builder ]]]"
+print ""
+print " #1) Model class name     : " + str(cr.get_class_name())
+print " #2) Full model process   : " + str(cr.get_process_syntax())
+#cr.print_tree()
+print " #3) Effective model process  : \n"
+cr.print_tree_effective()
+print ""
+# (Revise) : the target particles are not printed.
+print " #) Target mother particles : " + str(cr.get_target_particles())
+print " #) Full invisible particles : " + str(cr.get_invisibles())
+print " #) Effective invisible particles : " + str(cr.get_optimize_particles())
+print " #) Constraint functions : " + str(cr.get_constraints_formula())
+print " #) ALM parameters       : " + str(cr.get_alm_dict())
+print " #) MINUIT parameters    : " + str(cr.get_minuit_dict())
+print ""
+#print "writing at:" + os.path.abspath(args.output_path)
+
+
+#print "Reading header template of dictionary code"
+fdict_h = open('model/model_interpreter/CalcTemplate.h','r')
+string_buf = fdict_h.read()
+fdict_h.close()
+
+#print "Writing header of dictionary code"
+string_buf = string_buf.replace("CalcTemplate",cr.get_class_name())
+
+if os.path.abspath(args.output_path_1).strip()[-1] is "/":
+#    print os.path.abspath(args.output_path_1).strip()+cr.get_class_name()+".h"
+    fdict_h = open((os.path.abspath(args.output_path_1).strip())+cr.get_class_name()+".h",'w')
+else:
+#    print os.path.abspath(args.output_path_1).strip()+'/'+cr.get_class_name()+".h"
+    fdict_h = open((os.path.abspath(args.output_path_1).strip())+'/'+cr.get_class_name()+".h",'w')
+
+fdict_h.write(string_buf)
+fdict_h.close()
+
+
+#print "Reading c++ source template of dictionary code"
+f = open('model/model_interpreter/CalcTemplate.cc','r')
+string_buf = f.read()
+f.close()
+
+#print "Writing a dictionary source code"
+string_buf = string_buf.replace("CalcTemplate",cr.get_class_name())
+if cr.elem_card.get("debug") == "True" or cr.elem_card.get("debug") == "True" :
+    string_buf = string_buf.replace("{debug}","true")
+else:
+    string_buf = string_buf.replace("{debug}","false")
+
+#print "Writing process syntax"
+str_buf = ""
+for syntax in cr.get_process_syntax():
+    str_buf += "process_tree_.AddProcess(\""+syntax+"\");\n"+"    "
+string_buf = string_buf.replace("{process_syntax_}",str_buf.strip())
+
+#print "Writing invisible particle list"
+str_buf = "std::vector< std::string > vec_invisibles = " + (str)(cr.get_invisibles())
+str_buf = str_buf.replace("[","{").replace("]","}").replace("\'","\"")
+str_buf += ";\n" + "    process_tree_.SetInvisibles(vec_invisibles);"
+string_buf = string_buf.replace("{particle_invisibles_}",str_buf.strip())
+
+#print "Writing particle masses"
+str_buf = ""
+for key, value in cr.get_mass_dict().items():
+    str_buf += "process_tree_.SetMass(\""+key+"\", "+value+");\n"+"    "
+string_buf = string_buf.replace("{map_particle_mass_}",str_buf.strip())
+
+#print "Writing target particle list"
+string_buf = string_buf.replace("{vec_ptl_target_label_}",cr.get_mass_function().replace("\n","\n   "))
+
+#print "Writing optimize particle list"
+str_buf = "std::vector< std::string > vec_optimize = " + (str)(cr.get_optimize_particles())
+str_buf = str_buf.replace("[","{").replace("]","}").replace("\'","\"")
+str_buf += ";\n" + "    process_tree_.SetPtlOptimize( vec_optimize );\n"
+string_buf = string_buf.replace("{vec_ptl_optimize_label_}",str_buf.strip())
+
+#print "Writing the list of the GPTC (Group of PT Conservation decay chains)"
+str_buf = "std::vector< std::string > vec_buffer;\n   "
+for subsystem in cr.get_invisible_subsystem():
+    str_buf += "vec_buffer = " + str(subsystem) + ";\n" + "    "
+    str_buf += "process_tree_.AddInvisibleSubsystem(vec_buffer);\n"+"    "
+str_buf = str_buf.replace("[","{").replace("]","}").replace("\'","\"")
+string_buf = string_buf.replace("{vec_ptl_invisible_subsystem_label_}",str_buf.strip())
+
+#print "Writing the method of input the PT information for GPTC"
+index = 0
+str_buf = ""
+for elem in cr.elem_particle_invisible_subsystem.findall("Subsystem"):
+    if elem.get("set_value") == "manual":
+        str_buf += "process_tree_.SetInvisibleSubsystemMomentaAutoCalc(" + str(index) + ", false" + ");\n" + "    "
+    elif elem.get("set_value") == "automatic" or elem.get("set_value") == None:
+        str_buf += "//process_tree_.SetInvisibleSubsystemMomentaAutoCalc(" + str(index) + ", true" + ");\n" + "    "
+    else:
+        print "invalid syntax for Subsystem.set_value"
+        sys.exit()
+    index += 1
+string_buf = string_buf.replace("{vec_ptl_invisible_subsystem_calc_auto_}",str_buf.strip())
+
+#print "Writing MINUIT parameters"
+str_buf = ""
+for key, value in cr.get_minuit_dict().items():
+    if key == "maxfcn":
+        str_buf += "maxfcn_ = "+value+";\n"+"    "
+    elif key == "tolerance_":
+        str_buf += "tolerance = "+value+";\n"+"    "
+    elif key == "init_step_size":
+        str_buf += "init_step_size_ = "+value+";\n"+"    "
+string_buf = string_buf.replace("{map_minuit_param_}",str_buf.strip())
+
+
+#print "Writing ALM parameters"
+str_buf = ""
+for key, value in cr.get_alm_dict().items():
+    str_buf += "alm_controller_.SetALMControlParam(\""+key+"\", "+value+");\n"+"    "
+for elem in cr.elem_alm.findall("code"):
+    for str_line in elem.text.split("\n"):
+        str_buf += str_line.strip() +"\n"+"    "
+string_buf = string_buf.replace("{map_alm_control_param_}",str_buf.strip())
+
+#print "Writing the initial values of the Lagrange multipliers and penalty parameters"
+str_buf = ""
+if cr.elem_constraints.get("penalty_init") != None:
+    str_buf += "alm_controller_.SetInitialPenaltyParam(" + cr.elem_constraints.get("penalty_init")+");\n"+"    "
+index = 0
+for elem in cr.elem_constraints.findall("Constraint"):
+    if elem.get("multiplier_init") != None:
+        str_buf += "alm_controller_.SetInitialLagrangeMultiplier(" + str(index) + ", " + elem.get("multiplier_init")+");\n"+"    "
+    index += 1
+string_buf = string_buf.replace("{alm_param_initial_values_}",str_buf.strip())
+
+#print "Writing the definition of constraint functions"
+str_buf = ""
+for cmd in cr.get_constraints_params():
+    str_buf += cmd + ";\n" + "    "
+index = 0
+for cmd, syntax, elem in zip(cr.get_constraints(), cr.get_constraints_syntax(), cr.elem_constraints.findall("Constraint")):
+    str_buf += "//" + syntax + "\n    "
+    str_buf += "if( vec_constraints_using.at(" + str(index) + ")){\n" + "    "
+    str_buf += "    vec_constraints[" + str(index) + "] = " + cmd + ";\n" + "    "
+    if elem.get("type") == "greater":
+        str_buf += "    if(vec_constraints[" + str(index) + "] > 0)" + "\n" + "    "
+        str_buf += "        vec_constraints[" + str(index) + "] = 0" + ";\n" + "    "
+    if elem.get("type") == "lesser":
+        str_buf += "    if(vec_constraints[" + str(index) + "] < 0)" + "\n" + "    "
+        str_buf += "        vec_constraints[" + str(index) + "] = 0" + ";\n" + "    "
+    str_buf += "}else{\n" + "    "
+    str_buf += "    vec_constraints[" + str(index) + "] = 0;\n" + "    "
+    str_buf += "}\n" + "    "
+    index += 1
+string_buf = string_buf.replace("{constraints_}",str_buf.strip())
+string_buf = string_buf.replace("{num_constraints_}","alm_controller_.SetNumberConstraints(" + str(index) + ");\n")
+
+#print "Writing CalcProlog and CalcEpilog"
+str_calc_prolog = ""
+str_calc_epilog = ""
+for elem in cr.elem_calc.findall("code"):
+    if elem.get("function") == "CalcProlog":
+        for str_line in elem.text.split("\n"):
+            str_calc_prolog += str_line.strip() + "\n" + "    "
+    elif elem.get("function") == "CaclEpilog":
+        for str_line in elem.text.split("\n"):
+            str_calc_epilog += str_line.strip() + "\n" + "    "
+string_buf = string_buf.replace("{calc_prolog_}",str_calc_prolog.strip())
+string_buf = string_buf.replace("{calc_epilog_}",str_calc_epilog.strip())
+
+#print "Writing Minuit CalcStrategy"
+str_calc_strategy = ""
+if cr.elem_minuit.find("strategy").attrib["method"] == "combined":
+    str_calc_strategy = "MinimizeCombined(params);"
+elif cr.elem_minuit.find("strategy").attrib["method"] == "migrad":
+    str_calc_strategy = "MinimizeMigrad(params);"
+elif cr.elem_minuit.find("strategy").attrib["method"] == "simplex":
+    str_calc_strategy = "MinimizeSimplex(params);"
+elif cr.elem_minuit.find("strategy").attrib["method"] == "manual":
+    str_calc_strategy = cr.elem_minuit.find("strategy").text
+else:
+    str_calc_strategy = "MinimizeCombined(params); // default method is using. Check minuit.strategy.method"
+string_buf = string_buf.replace("{calc_strategy_}",str_calc_strategy.strip())
+
+
+
+#print "wrting transverse projection"
+str_trans_projection = ""
+if cr.elem_card.attrib.get("transverse_projection") == "True":
+    str_trans_projection = "TransverseProjection(true);"
+string_buf = string_buf.replace("{transverse_projection_}",str_trans_projection.strip())
+
+
+#print "Finally, writing C++ dictionary source code at : " + os.path.abspath(args.output_path_1).strip()
+if os.path.abspath(args.output_path_1).strip()[-1] is "/":
+#    print os.path.abspath(args.output_path_1).strip()+cr.get_class_name()+".cc"
+    f = open((os.path.abspath(args.output_path_1).strip())+cr.get_class_name()+".cpp",'w')
+else:
+#    print os.path.abspath(args.output_path_1).strip()+'/'+cr.get_class_name()+".cc"
+    f = open((os.path.abspath(args.output_path_1).strip())+'/'+cr.get_class_name()+".cpp",'w')
+f.write(string_buf)
+f.close()
+
+'''
++-------------------------------------------------------------+
+| Main skeleton code (main-<model_class_name>.cpp) generator  |
++-------------------------------------------------------------+
+  
+'''
+'''
+# print "Reading header template of main source code"
+fmain_h = open('model/model_interpreter/MainTemplate.h','r')
+string_buf_main = fmain_h.read()
+fmain_h.close()
+
+#print "Writing header of main code"
+string_buf_main = string_buf_main.replace("MainTemplate",cr.get_class_name())
+
+if os.path.abspath(args.output_path_2).strip()[-1] is "/":
+#    print os.path.abspath(args.output_path_2).strip()+cr.get_class_name()+".h"
+    fmain_h = open((os.path.abspath(args.output_path_2).strip())+"main_"+cr.get_class_name()+".h",'w')
+else:
+#    print os.path.abspath(args.output_path_2).strip()+'/'+cr.get_class_name()+".h"
+    fmain_h = open((os.path.abspath(args.output_path_2).strip())+'/'+"main_"+cr.get_class_name()+".h",'w')
+
+fmain_h.write(string_buf_main)
+fmain_h.close()
+'''
+
+# print "Reading src template of main source code"
+''' main-<model_class_name>.cpp ''' 
+
+fmain_s = open('model/model_interpreter/MainTemplate.cpp','r')
+string_buf_main =fmain_s.read()
+fmain_s.close()
+
+# Replacement of 'MainTemplate' with 'model class name'
+string_buf_main = string_buf_main.replace("MainTemplate",cr.get_class_name())
+
+# Replacement of {process_syntax_} with cr.get_process_syntax()
+str_buf_main = ""
+nchain = 0
+for chain in cr.get_process_syntax():
+    nchain += 1
+    str_buf_main += "chain-("+str(nchain)+") : "+chain+"\n"+"    "
+string_buf_main = string_buf_main.replace("{process_syntax_}",str_buf_main.strip())
+
+# Replacement of {particle_invisibles_} with cr.get_invisibles()
+string_buf_main = string_buf_main.replace("{particle_invisibles_}",str(cr.get_invisibles()))
+
+# Replacement of {target_particles_} with cr.get_target_particles()
+string_buf_main = string_buf_main.replace("{target_particles_}",str(cr.get_target_particles()))
+
+# Replacement of {effective_invisible_particles_} with cr.get_optimize_particles()
+string_buf_main = string_buf_main.replace("{effective_invisible_particles_}",str(cr.get_optimize_particles()))
+
+# Replacement of {process_syntax_} with cr.get_process_syntax()
+str_buf_main = ""
+nchain = 0
+for func in cr.get_constraints_formula():
+    nchain += 1
+    str_buf_main += "constraint-("+str(nchain)+") : "+func+" = 0 \n"+"    "
+string_buf_main = string_buf_main.replace("{constraint_function_list_}",str_buf_main.strip())
+
+# Replacement of {met_input_} with "optm->SetMissingET(...); x Number of PT-conservation system (=dim of GPTC)
+str_buf_main = ""
+nmetsystem = 0
+for metsystem in cr.get_invisible_subsystem():
+    str_buf_main += "optm->SetInvisibleSubsystemMomenta("+ str(nmetsystem) + ",  ,  );// (i-1, PTmiss_tot.Px, PTmiss_tot.Py) for the (i="+str(nmetsystem+1)+")-th PT-conservation system\n"+"     "
+    nmetsystem +=1
+#    print "nmetsystem = " + str(nmetsystem)
+string_buf_main = string_buf_main.replace("{met_input_}",str_buf_main.strip())
+
+
+# Visible Momentum Input <--> {visible_momentum_input_}
+str_buf_main = ""
+nvisible_ptl = 0
+for visible in cr.get_final_state_visibles():
+    nvisible_ptl += 1
+    str_buf_main += "optm->SetMomentumValue(\""+str(visible)+"_x\",   );\n"+"        "
+    str_buf_main += "optm->SetMomentumValue(\""+str(visible)+"_y\",   );\n"+"        "
+    str_buf_main += "optm->SetMomentumValue(\""+str(visible)+"_z\",   );\n"+"        "
+    str_buf_main += "optm->SetMomentumValue(\""+str(visible)+"_m\",   );\n"+"        "
+#    print "visible_ptl = " + str(visible)
+#    print "nvisible_ptl = " + str(nvisible_ptl)
+string_buf_main = string_buf_main.replace("{visible_momentum_input_}",str_buf_main.strip())
+
+# Trial Mass Input <--> {invisible_particle_mass_input}
+str_buf_main = ""
+ninvisible_ptl = 0
+for effective_invisible in cr.get_optimize_particles():
+    ninvisible_ptl += 1
+    str_buf_main += "optm->SetInitInvisibleMomentum(\""+str(effective_invisible)+"_m\",   );\n"+"        "
+#    print "effective_invisible_ptl = " + str(effective_invisible)
+#    print "ninvisible_ptl = " + str(ninvisible_ptl)
+string_buf_main = string_buf_main.replace("{invisible_particle_mass_input_}",str_buf_main.strip())
+
+# Constraint Function Switching <--> {constraint_function_switch_}
+str_buf_main = ""
+nconstraint = 0
+for constraint in cr.get_constraints_formula():
+    str_buf_main += "alm_controller.UseConstraint("+str(nconstraint)+", true);// (true or false) for the constraint : "+str(constraint)+" = 0.\n"+"        "
+    nconstraint += 1
+string_buf_main = string_buf_main.replace("{constraint_function_switch_}",str_buf_main.strip())
+
+# Checking Masses of Interesting Reconstructed Particles after ALM <--> {reconstructed_particle_masses_}
+str_buf_main = ""
+nnode = 0
+for node in cr.get_reconstructed_particles():
+    nnode += 1
+    str_buf_main += "std::cout << \""+str(node)+"-mass = \" << process_tree.GetSubsystemMass(\""+str(node)+"\") << std::endl;\n"+"        "
+string_buf_main = string_buf_main.replace("{reconstructed_particle_masses_}",str_buf_main.strip())
+
+
+
+if os.path.abspath(args.output_path_2).strip()[-1] is "/":
+#    print os.path.abspath(args.output_path_2).strip()+cr.get_class_name()+".h"
+    fmain_s = open((os.path.abspath(args.output_path_2).strip())+"main_"+cr.get_class_name()+".cpp",'w')
+else:
+#    print os.path.abspath(args.output_path_2).strip()+'/'+cr.get_class_name()+".h"
+    fmain_s = open((os.path.abspath(args.output_path_2).strip())+'/'+"main_"+cr.get_class_name()+".cpp",'w')
+fmain_s.write(string_buf_main)
+fmain_s.close()
+
+
+
+############################################################
+print " ========================================"
+print " * Summary on building model dictionary *"
+print " ========================================\n"
+print "     1> A dictionary code for the model - [" + cr.get_class_name() + "] has been generated\n"
+print "        => ["+args.output_path_1 + "/" + cr.get_class_name()+".cpp and .h]" + "\n"
+
+print "     2> A main-event-interface(MEI) skeleton code for the model has been generated \n" 
+print "        => ["+args.output_path_2 + "/main_" + cr.get_class_name()+".cpp and .h]" + "\n"
+
+print "     2> Customize the main interface code - 'main.cpp', using the MEI skeleton code above\n"
+print "     3> If you have not built and installed the OptiMass library," 
+print "         install it via the following steps :"
+print ""
+print "         > cd ./alm_base"
+print "         > ./configure  (=> This process will check if your ROOT installation and MINIUT2 activation is valid, extracting some compiling variables consistent with ROOT.)"
+print "         > make"
+print "         > make install (=> Then the library 'libOptiMass.so/.dylib' will be installed in the 'lib' directory.)"+"\n"
+print "     4> With a customized 'main.cpp' + installed 'libOptiMass' library,"
+print "        you can compile them for the final executable - 'optimass.x' using the Makefile at the top source directory (where this 'build_model_dictionary' is). In case you encounter errors involved with 'ExRootAnalysis', please see 'README'. \n"
+print "         > make"
+print "         > ./optimass.x"
+print ""
+
