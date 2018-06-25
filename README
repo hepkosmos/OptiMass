@@ -19,7 +19,7 @@ References: http://arXiv.org/abs/1508.00589
 # Requirements #
 ----------------
 
-1) C++ compiler (g++ >=4.4.7 or clang++ >=3.1)
+1) C++ compiler (checked for gcc = 5.4) 
 2) Python (python >= 2.6)
 3) ROOT installation with MINUIT2 activated (https://root.cern.ch) 
 4) Autotools and Libtools
