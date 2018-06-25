@@ -15,7 +15,7 @@ modelcard="./model/model_card.xml"
 
 if [ -f $modelfile ]
 then
-	echo ""
+    echo ""
     echo " *processing ${modelfile}..."
     cp $modelfile $modelcard;
     ./build_model_dictionary;
