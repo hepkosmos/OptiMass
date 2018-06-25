@@ -1,0 +1,23 @@
+========================
+(* OptiMass ChangeLog *) 
+========================
+
+OptiMass-1.0.4 [2018 Autumn] [to be released]
+
+
+OptiMass-1.0.3 [September 19, 2015] [Released]
+
+ * Feature : Added explanations and scripts in the 'README' and 'Makefile', especially for compiling with 'ExRootAnalysis'.
+
+OptiMass-1.0.2 [August 26, 2015] [Released]
+
+ * Bugs : Error fixed in the 'build_model_dictionary' (SetFittingValues >> SetInitInvisibleMomentum), Refined MainTemplate.cpp and README
+
+OptiMass-1.0.1 [August 6, 2015] [Released]
+
+ * Feature : Refined the 'summary' output from the command './build_model_dictionary'
+
+OptiMass-1.0.0 [August 5, 2015] [Released]
+
+ * First released 
+
