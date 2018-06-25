@@ -14,6 +14,7 @@ include
 *.swp
 .DS_Store
 *.db
+*test.cpp
 .localized
 autoscan.log
 autom4te.cache
@@ -27,3 +28,4 @@ alm_base/config/config.h
 alm_base/config/stamp-h1
 optimass
 optimass.x
+
