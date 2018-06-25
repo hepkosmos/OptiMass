@@ -1,34 +1,34 @@
 <?xml version='1.0' encoding='utf-8'?>
-<ProcessCard classname="Hhh" debug="false" version="1.0">
+<ProcessCard classname="Zprime" debug="false" version="1.0">
     <!-- ======================== -->
     <!-- Define event decay chain -->
     <!-- ======================== -->
     <DecayChains>
-    	<DecayChain>
-    		H - h1 h2 , ( h1 - b1 b2 ) , ( h2 - w1 w2 , ( w1 - e1 v1 ) , ( w2 - e2 v2 ) )
-       	</DecayChain>
+	    <DecayChain>
+    		Zp - n1 n2 , ( n1 - l1 l2 ) , ( n2 - v1 v2 )
+		</DecayChain>
     </DecayChains>
     <!-- ================================ -->
     <!-- Target particles to be optimized -->
     <!-- ================================ -->
     <ParticleMassFunction>
-        <ParticleGroup mass_function="M2" group_function="max">
-          <Particle label="H" />
+        <ParticleGroup mass_function="M2" group_function="mean">
+          <!--
+          <Particle label="h1" />
+          <Particle label="h2" />
+          -->
+          <Particle label="Zp" />
         </ParticleGroup>
     </ParticleMassFunction>
     <!-- ===================================== -->
     <!-- Map between particle labels and types -->
     <!-- ===================================== -->
     <ParticleLabels>
-        <Particle label="H" name="heavyHiggs" />
-        <Particle label="h1" name="lighthiggs" />   	
-    	<Particle label="h2" name="lighthiggs"/>
-        <Particle label="b1" name="bottom" />
-        <Particle label="b2" name="bottom" />
-        <Particle label="w1" name="wboson" />
-        <Particle label="w2" name="wboson" />
-        <Particle label="e1" name="electron" />
-        <Particle label="e2" name="electron" />
+        <Particle label="Zp" name="Zprime" />
+        <Particle label="n1" name="sneutrino1" />   	
+    	<Particle label="n2" name="sneutrino2" />
+        <Particle label="l1" name="lepton" />
+        <Particle label="l2" name="lepton" />
         <Particle label="v1" name="neutrino" />
         <Particle label="v2" name="neutrino" />
     </ParticleLabels>
@@ -36,11 +36,12 @@
     <!-- Particle Types and Its Properties -->
     <!-- ================================= -->
     <ParticleProperties>
-        <Particle name="top" mass="173." />
-        <Particle name="lightHiggs" mass="125." />
-        <Particle name="bottom" mass="4.18"  />
-        <Particle name="wboson" mass="80.419" />
-        <Particle name="electron" />
+        <Particle name="Zprime" mass="2000." />
+        <Particle name="sneutrino1" />
+        <Particle name="sneutrino2" />
+		<Particle name="wboson" mass="80.419" />
+		<Particle name="zboson" mass="90.0" />
+        <Particle name="lepton" />
         <Particle name="neutrino" invisible="True" />
     </ParticleProperties>
     <!-- ================================ -->
@@ -48,7 +49,7 @@
     <!-- ================================ -->
     <ParticleInvisibleSubsystem>
         <Subsystem set_value="manual" >
-          <Particle label="H" />
+          <Particle label="Zp" />
         </Subsystem>
     </ParticleInvisibleSubsystem>
     <!-- ============================= -->
@@ -56,14 +57,8 @@
     <!-- ============================= -->
     <Constraints penalty_init="0.1">
       <Constraint multiplier_init="0" type="equal">
-        	h1.M() - 125.
+        	n1.M() - n2.M()
       </Constraint>
-      <Constraint multiplier_init="0" type="equal">
-        	h2.M() - 125.
-      </Constraint>
-       <Constraint multiplier_init="0" type="equal">
-        	h1.M() - h2.M()
-        </Constraint>
     </Constraints>
     <!-- ====================== -->
     <!-- ALM Control Parameters -->
@@ -75,12 +70,11 @@
         <param name="gamma" value="0.2" />
         <param name="b_eta0" value="0.5" />
         <param name="b_eta" value="0.3" />
-        <param name="nIterMax" value="20" />
+        <param name="nIterMax" value="100" />
     	<code>
         <![CDATA[
-            double MScale_Parent = 100.;
-			double MScale_Rel = 0.;
-    		double Cmax[2] = {0.001*MScale_Parent,0.001*MScale_Rel};
+			double MScale = 100.;
+    		double Cmax[2] = {0.001*MScale,0.001*MScale};
             alm_controller_.SetALMControlParam("eta_s", sqrt(Cmax[0]*Cmax[0]+Cmax[1]*Cmax[1]) );
         ]]>
     	</code>
