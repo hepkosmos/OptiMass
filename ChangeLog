@@ -4,6 +4,19 @@
 
 OptiMass-1.0.4 [2018 Autumn] [to be released]
 
+[new features]
+
+> ROOT::TError::gErrorIgnoreLevel to be embedded as an member variable for
+optimass @ alm_base/src/MassMinimizer.cpp
+
+> Process folder generator to be embedded:
+
+>> * input: (process 1, 2, ...) (folder_name / path)  
+>> * output: folder with main.cpp package, in which all the OptiMass processes
+can be calculated easily by a function call
+
+> OptiMass board
+
 
 OptiMass-1.0.3 [September 19, 2015] [Released]
 
