@@ -2,13 +2,25 @@
 [![License: LGPL v2.1+](https://img.shields.io/badge/License-LGPL%20v2.1+-blue.svg)](https://www.gnu.org/licenses/lgpl.html)
 
 OPTIMASS is a package for the minimization of kinematic mass functions with various kinematic constraints for 
-general event topologies, providing users with an ability to obtain mass variables optimized for specific event topologies.
+general event topologies, providing users with an ability to obtain mass variables optimized for specific decay processes.
 
+Starting from user's process card in `XML` format
+which defining the process information as follows:
 
+    1) decay chains with particle elements at nodes and leaves,
+    2) mass function of the masses of the particles,
+    3) invisible particles to be optimized for the mass function,
+    4) kinematic constraint functions, 
+    5) assignment of independent PT-conserving chains (for multiple decay chains from independent events),
 
+the interpreter (Python) of OPTIMASS can generate a process job directory including 
 
+    1) process dictionary codes (C++)
+    2) main function code (C++) for running OPTIMASS
 
+for a selective set of the processes.
 
+Then the constrained minimization of the mass function with respect to the invisible momenta, subject to the kinematic constrains, is implemented by the Augmented Lagrange Method, utilizing the libraries of ROOT with MINUIT2 for a series of unconstrained minimizations required.
 
 
 ## Installation 
