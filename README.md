@@ -13,7 +13,6 @@ general event topologies, providing users with an ability to obtain mass variabl
 
 
 ## Installation
----
 
 #### 1) Requirements
   C++ compiler (checked for gcc = 5.4) 
@@ -39,7 +38,6 @@ general event topologies, providing users with an ability to obtain mass variabl
 
 
 ## Generation of User's own Process Directory
----
 
 #### 1) Checking the List of the Process Cards (<myproc>.xml) in 'model_cards/' dir.
 
@@ -60,15 +58,12 @@ general event topologies, providing users with an ability to obtain mass variabl
 Entered the process job directory, you can customize the `main.cpp` for loading your own events, 
 simply it can be compiled by `make`, which generate the executable `optimass.x` 
 
-'''
 > $cd <dir_path_name> 
 > $make
 > $./optimass.x
-'''
 
 
 ## Reference and Cite
----
 When citing OptiMass, please use the following reference paper:
 
 >  OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints
