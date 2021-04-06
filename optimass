@@ -294,7 +294,7 @@ class BuildProcesses(CardReader):
             elif elem.get("set_value") == "automatic" or elem.get("set_value") == None:
                 str_buf += "//process_tree_.SetInvisibleSubsystemMomentaAutoCalc(" + str(index) + ", true" + ");\n" + "    "
             else:
-                print "invalid syntax for Subsystem.set_value"
+                print ("invalid syntax for Subsystem.set_value")
                 sys.exit()
             index += 1
         string_buf = string_buf.replace("{vec_ptl_invisible_subsystem_calc_auto_}",str_buf.strip())
