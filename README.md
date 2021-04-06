@@ -66,7 +66,7 @@ simply it can be compiled by `make`, which generate the executable `optimass.x`
 ## Reference and cite
 When use OPTIMASS, please cite the following reference paper:
 
-   OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints
-   [JHEP 1601(2016) 026](https://link.springer.com/article/10.1007%2FJHEP01%282016%29026) [arXiv:1508.00589 [hep-ph]](https://arxiv.org/abs/1508.00589v2)
+*OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints 
+[JHEP 1601(2016) 026](https://link.springer.com/article/10.1007%2FJHEP01%282016%29026) [arXiv:1508.00589 [hep-ph]](https://arxiv.org/abs/1508.00589v2)
 
 
