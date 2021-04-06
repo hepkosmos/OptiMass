@@ -41,22 +41,22 @@ general event topologies, providing users with an ability to obtain mass variabl
 ## Generation of User's own Process Directory
 ---
 
-### 1) Checking the List of the Process Cards (<myproc>.xml) in 'model_cards/' dir.
+#### 1) Checking the List of the Process Cards (<myproc>.xml) in 'model_cards/' dir.
 
 > $./optimass --list
 
 
-### 6) Vim-editing a Process Card (<myproc>.xml) 
+#### 2) Vim-editing a Process Card (<myproc>.xml) 
 
 > $./optimass --vim <myproc>
 
 
-### 7) Interpreting Users Process Cards and Generating a Job Directory:
+#### 3) Interpreting Users Process Cards and Generating a Job Directory:
 
 > $./optimass --gen <myproc_1> <myproc_2> ... --dir <dir_path_name>
 
 
-### 8) Working in the Job Directory:
+#### 4) Working in the Job Directory:
 Entered the process job directory, you can customize the `main.cpp` for loading your own events, 
 simply it can be compiled by `make`, which generate the executable `optimass.x` 
 
@@ -71,7 +71,7 @@ simply it can be compiled by `make`, which generate the executable `optimass.x`
 ---
 When citing OptiMass, please use the following reference paper:
 
-  OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints
-  [JHEP 1601(2016) 026](https://link.springer.com/article/10.1007%2FJHEP01%282016%29026) [arXiv:1508.00589 [hep-ph]](https://arxiv.org/abs/1508.00589v2)
+>  OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints
+>  [JHEP 1601(2016) 026](https://link.springer.com/article/10.1007%2FJHEP01%282016%29026) [arXiv:1508.00589 [hep-ph]](https://arxiv.org/abs/1508.00589v2)
 
 
