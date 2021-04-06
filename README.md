@@ -1,5 +1,4 @@
 ## OPTIMASS: a package for the minimization of kinematic mass functions with constraints
----
 [![License: LGPL v2.1+](https://img.shields.io/badge/License-LGPL%20v2.1+-blue.svg)](https://www.gnu.org/licenses/lgpl.html)
 
 OPTIMASS is a package for the minimization of kinematic mass functions with various kinematic constraints for 
