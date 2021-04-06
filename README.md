@@ -11,16 +11,18 @@ which defining the process information as follows:
     2) mass function of the masses of the particles,
     3) invisible particles to be optimized for the mass function,
     4) kinematic constraint functions, 
-    5) assignment of independent PT-conserving chains (for multiple decay chains from independent events),
+    5) assignment of independent PT-conserving chains 
+       (for multiple decay chains from independent events),
 
 the interpreter (Python) of OPTIMASS can generate a process job directory including 
 
     1) process dictionary codes (C++)
-    2) main function code (C++) for running OPTIMASS
+    2) main function code (C++) 
+       for loading events and running OPTIMASS
 
-for a selective set of the processes.
+for a selective set of user processes all together.
 
-Then the constrained minimization of the mass function with respect to the invisible momenta, subject to the kinematic constrains, is implemented by the Augmented Lagrange Method, utilizing the libraries of ROOT with MINUIT2 for a series of unconstrained minimizations required.
+OPTIMASS's constrained minimization of the mass function with respect to the invisible momenta, subject to the kinematic constrains, is implemented by the Augmented Lagrange Method, utilizing the libraries of ROOT with MINUIT2 for a series of unconstrained minimizations required.
 
 
 ## Installation 
