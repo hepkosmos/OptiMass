@@ -5,12 +5,9 @@
 *.a
 *.la
 *.gz
-.deps
-.libs
 *~
 .#*
 *.swp
 .DS_Store
 *.db
-*test.cpp
 .localized
