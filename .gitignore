@@ -12,5 +12,3 @@
 .DS_Store
 *.db
 .localized
-include
-lib

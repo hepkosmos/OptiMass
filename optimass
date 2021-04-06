@@ -1139,10 +1139,14 @@ def main():
         print (message)
 
         try:
-            os.chdir('alm_base')
-            #if os.system('cd alm_base; make clean; make uninstall; ./configure; ') != 0:
-            if os.system('make clean; make uninstall; ./configure; ') != 0:
-                raise Exception()
+            lib_path = root_path+'/lib'
+            inc_path = root_path+'/include/alm_base'
+            if len(os.listdir(lib_path))+len(inc_path) == 0:
+                if os.system('cd alm_base; ./configure') != 0:
+                    raise Exception()
+            else:
+                if os.system('cd alm_base; make clean; make uninstall; ./configure') != 0:
+                    raise Exception()
         except:
             message_conf_error = \
             "\n =================================================\n" +\
