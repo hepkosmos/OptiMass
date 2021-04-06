@@ -1,0 +1,1402 @@
+#! /usr/bin/env python 
+import os, sys, subprocess
+
+# Version check #rev update for py_ver >= 2.7
+if sys.version_info[0] == 2:
+    if sys.version_info[1] > 6:
+        import argparse
+        from model_interpreter.CardReader import CardReader
+    else:
+        print (sys.version)
+        print ("Your Python 2 version is lower than 2.7")
+        sys.exit()
+
+# Get the current path of this script as the root of OptiMass,
+root_path = os.getcwd()
+sys.path.insert(0, root_path)
+
+tab4 = "    "
+tab8 = tab4*2
+
+
+# Text and BG color class
+class bcolor:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKRED = '\033[93m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    
+    CODE_GREEN='\x1b[1;32;40m'
+    UNDERLINE = '\x1b[4m'
+    BLACK_BG_WHITE='\x1b[0;30;47m'
+    ENDC = '\x1b[0m'
+
+
+def ordinal_tag(z=None):
+    if z == 1:
+        th = 'st'
+    elif z == 2:
+        th = 'nd'
+    elif z == 3:
+        th = 'rd'
+    elif z > 3:
+        th = 'th'
+    elif type(z) != int or z <=0 :
+        raise ValueError(' => input arg is not a positive integer')
+    return th
+
+
+class BuildProcesses(CardReader):
+    """
+    The methods in this class require 
+    the directories - 'proc_dir_root', '/lib', '/src', '/model_cards' 
+    to be created in prior.
+    """
+
+    def __init__(self, proc_dir_root=None, proc_card_list=None):
+
+        self.proc_dir_root = proc_dir_root
+        self.proc_dir_lib = self.proc_dir_root+'/lib'
+        self.proc_dir_src = self.proc_dir_root+'/src'
+        self.proc_dir_card = self.proc_dir_root+'/cards'
+        self.proc_dir_event = self.proc_dir_root+'/Events'
+        self.proc_file_main = self.proc_dir_root+'/main.cpp'
+        self.proc_file_makefile = self.proc_dir_root+'/Makefile'
+        self.proc_tags = []
+
+        self.proc_card_list = proc_card_list
+
+        # List of CardReader instances for the proc_card_list 
+        self.crs = []
+
+        for proc_card in proc_card_list:
+            self.crs.append(CardReader(proc_card))
+            self.proc_tags.append(self.crs[-1].get_class_name())
+        
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            message_proc= \
+                "\n ===========================================\n" +\
+                " {}* Building the {}{} Process: {} ...{} \n".format(bcolor.BLACK_BG_WHITE, id+1, th, cr.get_class_name(), bcolor.ENDC) +\
+                " ===========================================\n" +\
+                " {} 1) Process Name      : {} {} \n".format(bcolor.BLACK_BG_WHITE, cr.get_class_name(), bcolor.ENDC) +\
+                " {} 2) Process Topology  : {} \n".format(bcolor.BLACK_BG_WHITE, bcolor.ENDC) +\
+                " {} {} {} \n".format(bcolor.CODE_GREEN, cr.get_process_syntax(), bcolor.ENDC) +\
+                " {} 3) Particle Property : {} \n".format(bcolor.BLACK_BG_WHITE, bcolor.ENDC)
+
+            print (message_proc)
+            cr.print_tree_effective()
+
+            message_proc = \
+                "\n {} 4) Mother Particles involving the Objective Mass Function : {} \n".format(bcolor.BLACK_BG_WHITE, bcolor.ENDC) +\
+                " {} {} {} \n".format(bcolor.CODE_GREEN, cr.get_target_particles(), bcolor.ENDC) +\
+                "\n {} 5) Full Invisible Particles : {} \n".format(bcolor.BLACK_BG_WHITE, bcolor.ENDC) +\
+                " {} {} {} \n".format(bcolor.CODE_GREEN, cr.get_invisibles(), bcolor.ENDC) +\
+                "\n {} 6) Effective Invisible Particles : {} {} \n".format(bcolor.BLACK_BG_WHITE, cr.get_optimize_particles(), bcolor.ENDC) +\
+                "\n {} 7) Constraint Functions : {} \n".format(bcolor.BLACK_BG_WHITE, bcolor.ENDC) +\
+                " {} {} {} \n".format(bcolor.CODE_GREEN, cr.get_constraints_formula(), bcolor.ENDC) +\
+                "\n {} 8) ALM parameters : {} \n".format(bcolor.BLACK_BG_WHITE, bcolor.ENDC) +\
+                " {} {} {} \n".format(bcolor.CODE_GREEN, cr.get_alm_dict(), bcolor.ENDC) +\
+                "\n {} 9) MINUIT parameters : {} \n".format(bcolor.BLACK_BG_WHITE, bcolor.ENDC) +\
+                " {} {} {} \n".format(bcolor.CODE_GREEN, cr.get_minuit_dict(), bcolor.ENDC)
+
+            print (message_proc)
+
+
+        pass
+
+
+
+    def gen_header(self, id): #by proc
+        """
+        * Generating Proc Header (<proc class name>.h) for the process with id - 'id',
+            using the template CalcTemplate.h
+        """
+
+        fsrc_h = open('model_interpreter/CalcTemplate.h','r')
+        string_buf = fsrc_h.read()
+        fsrc_h.close()
+
+        # 1) Replacing 'CalcTemplate' with the class name #rev:done
+        # -----------------------------------------------
+        string_buf = string_buf.replace("CalcTemplate",self.crs[id].get_class_name())
+
+        # 2) CalcTemplate::RunOptiMass() : {run_optimass_args_} #rev:todo
+        # -----------------------------------------------------
+        self.str_run_optimass_args_ = ""
+        # > add visibles as TLorentzVector(s):
+        nvis_line=2
+        nvis = len(self.crs[id].get_final_state_visibles())
+        for id_vis, visible in enumerate(self.crs[id].get_final_state_visibles()):
+            if id_vis == 0:
+                self.str_run_optimass_args_ += "TLorentzVector "+str(visible)+", "
+            elif id_vis > 0: 
+                if id_vis%nvis_line == 0:
+                    self.str_run_optimass_args_ += tab8+"TLorentzVector "+str(visible)+", "
+                else:
+                    self.str_run_optimass_args_ += "TLorentzVector "+str(visible)+", "
+            if (id_vis+1)%nvis_line == 0 or (id_vis+1) == nvis:
+                self.str_run_optimass_args_ += "\n"
+
+        # > add missing ET TVector2(s) for each PT conservation system:
+        nmet_line=2
+        nmet = len(self.crs[id].get_invisible_subsystem())
+        for id_met, metsystem in enumerate(self.crs[id].get_invisible_subsystem()):
+            if id_met == 0:
+                if nmet == 1:
+                    self.str_run_optimass_args_ += tab8+"TVector2 met, "
+                elif nmet > 1:
+                    self.str_run_optimass_args_ += tab8+"TVector2 "+"met"+str(id_met+1)+", "
+            elif id_met > 0:
+                if id_met%nmet_line == 0:
+                    self.str_run_optimass_args_ += tab8+"TVector2 "+"met"+str(id_met+1)+', '
+                else:
+                    self.str_run_optimass_args_ += "TVector2 "+"met"+str(id_met+1)+", "
+            if (id_met+1)%nmet_line == 0 or (id_met+1) == nmet:
+                self.str_run_optimass_args_ += "\n"
+
+        # > add constraint switch and references for optimass and compatibility distance
+        nconstraint = len(self.crs[id].get_constraints_formula())
+        self.str_run_optimass_args_ += tab8+"const bool (&constraint_switch)["+str(nconstraint)+"], double &om, double &ssc"
+        string_buf = string_buf.replace("{run_optimass_args_}",self.str_run_optimass_args_.strip())
+
+        # 3) Writing output into the header file (<class name>.h)
+        fsrc_h = open(self.proc_dir_src+'/'+self.crs[id].get_class_name()+'.h','w')
+        fsrc_h.write(string_buf)
+        fsrc_h.close()
+
+        pass
+
+
+
+    def gen_source(self, id): #by proc
+        """
+        * Generating Proc c++ Source (<proc class name>.cc) for the process with the id - 'id'
+            using the CalcTemplate.cc
+        """
+
+        # Reading c++ source template of dictionary code
+        # ----------------------------------------------
+        fsrc_cc = open('model_interpreter/CalcTemplate.cc','r')
+        string_buf = fsrc_cc.read()
+        fsrc_cc.close()
+
+        # CalcTemplate.cc) CalcTemplate::~CalcTemplate()
+        # ----------------------------------------------
+        # 1) {debug}
+        string_buf = string_buf.replace("CalcTemplate",self.crs[id].get_class_name())
+        if self.crs[id].elem_card.get("debug") == "True" or self.crs[id].elem_card.get("debug") == "True":
+            string_buf = string_buf.replace("{debug}","true")
+        else:
+            string_buf = string_buf.replace("{debug}","false")
+
+
+        # CalcTemplate.cc) CalcTemplate::InitContainersProlog()
+        # -----------------------------------------------------
+        # 1) {process_syntax_} 
+        str_buf = ""
+        for syntax in self.crs[id].get_process_syntax():
+            str_buf += "process_tree_.AddProcess(\""+syntax+"\");\n"+"    "
+        string_buf = string_buf.replace("{process_syntax_}",str_buf.strip())
+
+        # 2) {particle_invisibles_} ProcessTree::SetInvisibles() searching for all invisible ptls
+        str_buf = "std::vector< std::string > vec_invisibles = " + (str)(self.crs[id].get_invisibles())
+        str_buf = str_buf.replace("[","{").replace("]","}").replace("\'","\"")
+        str_buf += ";\n" + "    process_tree_.SetInvisibles(vec_invisibles);"
+        string_buf = string_buf.replace("{particle_invisibles_}",str_buf.strip())
+
+        # 3) {map_particle_mass_} ProcessTree::SetMass() (setting particle masses from the .xml info)
+        str_buf = ""
+        for key, value in self.crs[id].get_mass_dict().items():
+            str_buf += "process_tree_.SetMass(\""+key+"\", "+value+");\n"+"    "
+        string_buf = string_buf.replace("{map_particle_mass_}",str_buf.strip())
+
+        # 4) {def_objective_mass_function_} (def of objective mass function using mother particles) 
+        string_buf = string_buf.replace("{objective_mass_function_}",self.crs[id].get_mass_function().replace("\n","\n   "))
+
+        # 5) {ptls_to_optimize_} ProcessTree::SetPtlOptimize()
+        str_buf = "std::vector< std::string > vec_optimize = " + (str)(self.crs[id].get_optimize_particles())
+        str_buf = str_buf.replace("[","{").replace("]","}").replace("\'","\"")
+        str_buf += ";\n" + "    process_tree_.SetPtlOptimize( vec_optimize );\n"
+        string_buf = string_buf.replace("{ptls_to_optimize_}",str_buf.strip())
+
+        # 6) {vec_ptl_invisible_subsystem_label_} ProcessTree::AddInvisibleSubsystem() 
+        #rev: introduced str_vec_buffer for naming vec_buffers distinctively : done
+        #str_buf = "std::vector< std::string > vec_buffer;\n"+"    "
+        str_buf = "std::vector< std::string > "
+        nInvSubsystem = len(self.crs[id].get_invisible_subsystem())
+        for id_subsystem in range(nInvSubsystem):
+            if nInvSubsystem == 1:
+                str_vec_buffer = "vec_buffer"
+                str_buf += str_vec_buffer+";\n"+"    "
+            else:
+                str_vec_buffer = "vec_buffer"+str(id_subsystem)
+                if id_subsystem != nInvSubsystem-1:
+                    str_buf += str_vec_buffer+", "
+                else:
+                    str_buf += str_vec_buffer+";\n"+"    "
+
+        for id_subsystem, subsystem in enumerate(self.crs[id].get_invisible_subsystem()):
+            if nInvSubsystem == 1:
+                str_vec_buffer = "vec_buffer"
+            else:
+                str_vec_buffer = "vec_buffer"+str(id_subsystem)
+            str_buf += str_vec_buffer+" = " + str(subsystem) + ";\n"+"    "
+            str_buf += "process_tree_.AddInvisibleSubsystem("+str_vec_buffer+");\n"+"    "
+
+        str_buf = str_buf.replace("[","{").replace("]","}").replace("\'","\"")
+        string_buf = string_buf.replace("{vec_ptl_invisible_subsystem_label_}",str_buf.strip())
+
+        # 7) {map_minuit_param_} #rev:why "tolerance" is not appeared
+        str_buf = ""
+        for key, value in self.crs[id].get_minuit_dict().items():
+            if key == "maxfcn":
+                str_buf += "maxfcn_ = "+value+";\n"+"    "
+            elif key == "tolerance_":
+                str_buf += "tolerance = "+value+";\n"+"    "
+            elif key == "init_step_size":
+                str_buf += "init_step_size_ = "+value+";\n"+"    "
+        string_buf = string_buf.replace("{map_minuit_param_}",str_buf.strip())
+
+        # 8) {map_alm_control_param_} 
+        str_buf = ""
+        for key, value in self.crs[id].get_alm_dict().items():
+            str_buf += tab4+"alm_controller_.SetALMControlParam(\""+key+"\", "+value+");\n"
+        string_buf = string_buf.replace("{map_alm_control_param_}",str_buf.strip())
+
+        # 9) {map_alm_control_param_code_} : user defined code for ALM, CDATA
+        str_buf = ""
+        for elem in self.crs[id].elem_alm.findall("code"):
+            for str_line in elem.text.split("\n"):
+                str_buf += tab4+str_line.strip() +"\n"
+        string_buf = string_buf.replace("{map_alm_control_param_code_}",str_buf.strip())
+
+        # 10) {num_constraints_}
+        nconstr = len(self.crs[id].get_constraints())
+        string_buf = string_buf.replace("{num_constraints_}","alm_controller_.SetNumberConstraints(" + str(nconstr) + ");\n")
+
+
+        # CalcTemplate.cc : CalcTemplate::InitContainersEpilog()
+        # ------------------------------------------------------
+        # 1) {vec_ptl_invisible_subsystem_calc_auto_} 
+        index = 0
+        str_buf = ""
+        for elem in self.crs[id].elem_particle_invisible_subsystem.findall("Subsystem"):
+            if elem.get("set_value") == "manual":
+                str_buf += "process_tree_.SetInvisibleSubsystemMomentaAutoCalc(" + str(index) + ", false" + ");\n" + "    "
+            elif elem.get("set_value") == "automatic" or elem.get("set_value") == None:
+                str_buf += "//process_tree_.SetInvisibleSubsystemMomentaAutoCalc(" + str(index) + ", true" + ");\n" + "    "
+            else:
+                print "invalid syntax for Subsystem.set_value"
+                sys.exit()
+            index += 1
+        string_buf = string_buf.replace("{vec_ptl_invisible_subsystem_calc_auto_}",str_buf.strip())
+
+        # 2) {alm_param_initial_values_}
+        # ------------------------------
+        str_buf = ""
+        if self.crs[id].elem_constraints.get("penalty_init") != None:
+            str_buf += "alm_controller_.SetInitialPenaltyParam(" + self.crs[id].elem_constraints.get("penalty_init")+");\n"+"    "
+        index = 0
+        for elem in self.crs[id].elem_constraints.findall("Constraint"):
+            if elem.get("multiplier_init") != None:
+                str_buf += "alm_controller_.SetInitialLagrangeMultiplier(" + str(index) + ", " + elem.get("multiplier_init")+");\n"+"    "
+            index += 1
+        string_buf = string_buf.replace("{alm_param_initial_values_}",str_buf.strip())
+
+        # 3) {transverse_projection_}
+        # ---------------------------
+        str_trans_projection = ""
+        if self.crs[id].elem_card.attrib.get("transverse_projection") == "True":
+            str_trans_projection = "TransverseProjection(true);"
+        string_buf = string_buf.replace("{transverse_projection_}",str_trans_projection.strip())
+
+
+        # CalcTemplate.cc : CalcTemplate::CalcConstraints()
+        # --------------------------------------------------
+        # 1) {constraints_}
+        str_buf = ""
+        for cmd in self.crs[id].get_constraints_params():
+            str_buf += cmd + ";\n" + "    "
+        index = 0
+        for cmd, syntax, elem in zip(self.crs[id].get_constraints(), self.crs[id].get_constraints_syntax(), self.crs[id].elem_constraints.findall("Constraint")):
+            str_buf += "//" + syntax + "\n    "
+            str_buf += "if( vec_constraints_using.at(" + str(index) + ")){\n" + "    "
+            str_buf += "    vec_constraints[" + str(index) + "] = " + cmd + ";\n" + "    "
+            if elem.get("type") == "greater":
+                str_buf += "    if(vec_constraints[" + str(index) + "] > 0)" + "\n" + "    "
+                str_buf += "        vec_constraints[" + str(index) + "] = 0" + ";\n" + "    "
+            if elem.get("type") == "lesser":
+                str_buf += "    if(vec_constraints[" + str(index) + "] < 0)" + "\n" + "    "
+                str_buf += "        vec_constraints[" + str(index) + "] = 0" + ";\n" + "    "
+            str_buf += "}else{\n" + "    "
+            str_buf += "    vec_constraints[" + str(index) + "] = 0;\n" + "    "
+            str_buf += "}\n" + "    "
+            index += 1
+        string_buf = string_buf.replace("{constraints_}",str_buf.strip())
+
+
+        # CalcTemplate.cc : CalcTemplate::CalcProlog(), CalcEpilog()
+        # ----------------------------------------------------------
+        str_calc_prolog = ""
+        str_calc_epilog = ""
+        for elem in self.crs[id].elem_calc.findall("code"):
+            if elem.get("function") == "CalcProlog":
+                for str_line in elem.text.split("\n"):
+                    str_calc_prolog += str_line.strip() + "\n" + "    "
+            elif elem.get("function") == "CaclEpilog":
+                for str_line in elem.text.split("\n"):
+                    str_calc_epilog += str_line.strip() + "\n" + "    "
+        string_buf = string_buf.replace("{calc_prolog_}",str_calc_prolog.strip())
+        string_buf = string_buf.replace("{calc_epilog_}",str_calc_epilog.strip())
+
+
+        # CalcTemplate.cc : CalcTemplate::CalcStrategy()
+        # ----------------------------------------------
+        str_calc_strategy = ""
+        if self.crs[id].elem_minuit.find("strategy").attrib["method"] == "combined":
+            str_calc_strategy = "MinimizeCombined(params);"
+        elif self.crs[id].elem_minuit.find("strategy").attrib["method"] == "migrad":
+            str_calc_strategy = "MinimizeMigrad(params);"
+        elif self.crs[id].elem_minuit.find("strategy").attrib["method"] == "simplex":
+            str_calc_strategy = "MinimizeSimplex(params);"
+        elif self.crs[id].elem_minuit.find("strategy").attrib["method"] == "manual":
+            str_calc_strategy = self.crs[id].elem_minuit.find("strategy").text
+        else:
+            str_calc_strategy = "MinimizeCombined(params); // default method is using. Check minuit.strategy.method"
+        string_buf = string_buf.replace("{calc_strategy_}",str_calc_strategy.strip())
+
+
+        # CalcTemplate.cc : CalcTemplate::RunOptiMass() : {run_optimass_args} #rev:done
+        # -------------------------------------------------------------------
+        # 1) {run_optimass_args_} using the str_run_optimasas_args_
+        string_buf = string_buf.replace("{run_optimass_args_}",self.str_run_optimass_args_.strip())
+
+        # 2) {visible_momentum_input_} for Visible Momentum Input 
+        str_buf = ""
+        for id_vis, visible in enumerate(self.crs[id].get_final_state_visibles()):
+            str_buf += tab4+"this->SetMomentumValue(\""+str(visible)+"_x\", "+str(visible)+".Px());\n"
+            str_buf += tab4+"this->SetMomentumValue(\""+str(visible)+"_y\", "+str(visible)+".Py());\n"
+            str_buf += tab4+"this->SetMomentumValue(\""+str(visible)+"_z\", "+str(visible)+".Pz());\n"
+            str_buf += tab4+"this->SetMomentumValue(\""+str(visible)+"_m\", "+str(visible)+".M());\n"
+        string_buf = string_buf.replace("{visible_momentum_input_}",str_buf.strip())
+
+        # 3) {met_input_} <--> Missing ET input for the systems of PT-conservation system (=dim of GPTC)
+        str_buf = ""
+        nmet = len(self.crs[id].get_invisible_subsystem())
+        for id_met, metsystem in enumerate(self.crs[id].get_invisible_subsystem()):
+            if nmet == 1:
+                str_met_x = "met.Px()";
+                str_met_y = "met.Py()";
+            else:
+                str_met_x = "met"+str(id_met+1)+".Px()";
+                str_met_y = "met"+str(id_met+1)+".Py()";
+            str_buf += tab4+"this->SetInvisibleSubsystemMomenta("+ str(id_met) + ", "+str_met_x+", "+str_met_y+"); // for the (i="+str(id_met+1)+")-th PT-conservation system\n"
+
+        string_buf = string_buf.replace("{met_input_}",str_buf.strip()) 
+
+        # 4) {constraint_function_switch_} for switching on/off of constraint functions 
+        str_buf = ""
+        for id_constraint, constraint in enumerate(self.crs[id].get_constraints_formula()):
+            str_buf += "this->alm_controller_.UseConstraint("+str(id_constraint)+", constraint_switch["+str(id_constraint)+"]);// (true or false) for the constraint : "+str(constraint)+" = 0.\n"+"    "
+        string_buf = string_buf.replace("{constraint_function_switch_}",str_buf.strip())
+
+
+        # Writing output into the src file (<class name>.cpp) 
+        # ----------------------------------------------------
+        fsrc_cc = open(self.proc_dir_src+'/'+self.crs[id].get_class_name()+'.cpp','w')
+        fsrc_cc.write(string_buf)
+        fsrc_cc.close()
+
+
+        pass
+
+
+
+    def gen_makefile(self):
+        """
+        * Generating Makefile for compiling the input processes,
+            using the template MakefileTemplate
+        """
+
+        fsrc_h = open('model_interpreter/MakefileTemplate','r')
+        string_buf = fsrc_h.read()
+        fsrc_h.close()
+
+        # Replacing {optimass_dir_root_}
+        # ------------------------------
+        optimass_dir_root_ = root_path
+        string_buf = string_buf.replace("{optimass_dir_root_}", optimass_dir_root_)
+
+        # Writing output into Makefile
+        # ----------------------------
+        fsrc_h = open(self.proc_dir_root+'/Makefile','w')
+        fsrc_h.write(string_buf)
+        fsrc_h.close()
+
+        pass
+
+
+
+    def build_library(self):
+        """
+        Generating Makefile for compiling the input processes,
+        using the template MakefileTemplate.
+        """
+
+        self.proc_file_lib = self.proc_dir_root+'/lib/libOptiMass-model.a'
+
+        try:
+            if os.system('cd {}; make model;'.format(self.proc_dir_root)) != 0:
+                raise Exception()
+
+        except:
+            msg_build_error = \
+            "\n ======================================================\n" +\
+            " {}* Please Check the Error(s) in Building the Library: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " {}  => {} {} \n".format(bcolor.CODE_GREEN, self.proc_file_lib, bcolor.ENDC) +\
+            " ======================================================\n"
+            sys.exit(msg_build_error)
+
+
+        pass
+
+
+
+    def gen_main(self): #for all procs
+        """
+        """
+
+        # Reading c++ source template for main executable
+        # -----------------------------------------------
+        fmain_s = open('model_interpreter/MainTemplate.cpp','r')
+        string_buf_main = fmain_s.read()
+        fmain_s.close()
+
+
+        # Process Information: {proc_info_}
+        # -------------------
+        proc_info_=\
+        "//============================================\n" +\
+        "//      Main Program for Running OptiMass     \n" +\
+        "//============================================\n"
+
+        proc_info_template=\
+        "\n/*         <{id_}{th_}-Process Summary>\n" +\
+        "==============================================\n" +\
+        " 1) Process Name   : {my_proc_}\n" +\
+        "+--------------------------------------------+\n" +\
+        " 2) Decay Topology :\n" +\
+        "+--------------------------------------------+\n" +\
+        "    {process_syntax_} \n" +\
+        "+--------------------------------------------+\n" +\
+        " 3) Mother Particles for Mass Function:\n" +\
+        "+--------------------------------------------+\n" +\
+        "    {target_particles_}\n" +\
+        "+--------------------------------------------+\n" +\
+        " 4) Full Invisible Leaf Particles :\n" +\
+        "+--------------------------------------------+\n" +\
+        "    {particle_invisibles_}\n" +\
+        "+--------------------------------------------+\n" +\
+        " 5) Effective Invisible Particles :\n" +\
+        "+--------------------------------------------+\n" +\
+        "    {effective_invisible_particles_}\n" +\
+        "+--------------------------------------------+\n" +\
+        " 6) Constraint Function List :\n" +\
+        "+--------------------------------------------+\n" +\
+        "    {constraint_function_list_}\n" +\
+        "+--------------------------------------------*/\n" 
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            proc_info_temp = proc_info_template
+            # 
+            proc_info_temp = proc_info_temp.replace("{id_}",str(id+1))
+            proc_info_temp = proc_info_temp.replace("{th_}",th)
+
+            # 1) Model name/Process name: Replacement of {my_proc_} with model's classname
+            proc_info_temp = proc_info_temp.replace("{my_proc_}",cr.get_class_name())
+
+            # 2) Full decay topogy: 
+            #   Replacement of {proc_syntax_} with cr.get_proc_syntax()
+            str_buf_main = ""
+            nchain = 0
+            for chain in cr.get_process_syntax():
+                    nchain += 1
+                    str_buf_main += "chain-("+str(nchain)+") : "+chain+"\n"+"    "
+            proc_info_temp = proc_info_temp.replace("{process_syntax_}",str_buf_main.strip())
+
+            # 3) Full invisible leaf particles: 
+            #   Replacement of {particle_invisibles_} with cr.get_invisibles()
+            proc_info_temp = proc_info_temp.replace("{particle_invisibles_}",str(cr.get_invisibles()))
+
+            # 4) Target mother particles: 
+            #   Replacement of {target_particles_} with cr.get_target_particles()
+            proc_info_temp = proc_info_temp.replace("{target_particles_}",str(cr.get_target_particles()))
+
+            # 5) Effective invisible particles:
+            #   Replacement of {effective_invisible_particles_} with cr.get_optimize_particles()
+            proc_info_temp = proc_info_temp.replace("{effective_invisible_particles_}",str(cr.get_optimize_particles()))
+
+            # 6) Constraint function list
+            #   Replacement of {process_syntax_} with cr.get_process_syntax()
+            str_buf_main = ""
+            for id_const, func in enumerate(cr.get_constraints_formula()):
+                    str_buf_main += "constraint-("+str(id_const+1)+") : "+func+" = 0 \n"+"    "
+            proc_info_temp = proc_info_temp.replace("{constraint_function_list_}",str_buf_main.strip())
+
+            proc_info_ = proc_info_ + proc_info_temp
+
+        # Replacement of {proc_info_}
+        string_buf_main = string_buf_main.replace("{proc_info_}", proc_info_)
+
+
+        # Header: {header_}
+        # ------
+        header_= ""
+        header_template = '#include "{my_proc_}.h"\n'
+
+        for id, cr in enumerate(self.crs):
+            header_temp = header_template
+            header_temp = header_temp.replace("{my_proc_}",cr.get_class_name())
+            header_ += header_temp 
+
+        string_buf_main = string_buf_main.replace("{header_}", header_)
+
+
+        # Momentum: {mom_decl_}
+        # ---------
+        mom_decl_ = ""
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            if len(self.crs) == 1:
+                proc_tag = ''
+            elif len(self.crs) > 1:
+                proc_tag = '_'+cr.get_class_name()
+            mom_decl_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\" Momenta>\n"
+            mom_decl_proc = mom_decl_proc.replace("{id_}",str(id+1))
+            mom_decl_proc = mom_decl_proc.replace("{th_}",th)
+            mom_decl_proc = mom_decl_proc.replace("{my_proc_}", cr.get_class_name())
+
+            nsubsystem = len(cr.get_final_state_visibles_by_invisible_subsystem())
+
+            for id_subsystem, visibles_subsystem in enumerate(cr.get_final_state_visibles_by_invisible_subsystem()):
+
+                str_tlvector_a_subsystem = ""
+
+                nvis = len(visibles_subsystem)
+
+                if nsubsystem > 1:
+
+                    str_tlvector_a_subsystem += tab4+"// {}-th PT conservation subsystem of total {}-subsystem(s) \n".format((id_subsystem+1), nsubsystem)
+                    str_tlvector_a_subsystem += tab4+"// Visible momenta \n"
+
+                    for id_vis, visible in enumerate(visibles_subsystem):
+
+                        if id_vis == 0:
+                            str_tlvector_a_subsystem += tab4+"TLorentzVector "+str(visible)+proc_tag
+                        elif id_vis > 0: 
+                            str_tlvector_a_subsystem += str(visible)+proc_tag
+
+                        if (id_vis+1) == nvis:
+                            str_tlvector_a_subsystem += ", pvis{}{};\n".format(id_subsystem+1,proc_tag)
+                        else:
+                            str_tlvector_a_subsystem += ", "
+                    
+                    # // Missing ET
+                    str_tlvector_a_subsystem += tab4+"// Missing ET \n" 
+                    str_tlvector_a_subsystem += tab4+"TVector2 met{}{};\n".format(id_subsystem+1,proc_tag)
+                
+                elif nsubsystem == 1:
+
+                    str_tlvector_a_subsystem += tab4+"// Visible momenta \n"
+
+                    for id_vis, visible in enumerate(visibles_subsystem):
+
+                        if id_vis == 0:
+                            str_tlvector_a_subsystem += tab4+"TLorentzVector "+str(visible)+proc_tag
+                        elif id_vis > 0: 
+                            str_tlvector_a_subsystem += str(visible)+proc_tag
+
+                        if (id_vis+1) == nvis:
+                            str_tlvector_a_subsystem += ", pvis{};\n".format(proc_tag)
+                        else:
+                            str_tlvector_a_subsystem += ", "
+                    
+                    # // Missing ET
+                    str_tlvector_a_subsystem += tab4+"// Missing ET \n" 
+                    str_tlvector_a_subsystem += tab4+"TVector2 met{};\n".format(proc_tag)
+
+                mom_decl_proc += str_tlvector_a_subsystem + '\n' 
+
+            mom_decl_ = mom_decl_ + mom_decl_proc
+
+        string_buf_main = string_buf_main.replace("{mom_decl_}", mom_decl_)
+
+
+        # Constraints: {constraint_switch_}
+        # -----------
+        constraint_switch_ = ""
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            constraint_switch_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\" Constraints Switch>\n"
+            constraint_switch_proc = constraint_switch_proc.replace("{id_}",str(id+1))
+            constraint_switch_proc = constraint_switch_proc.replace("{th_}",th)
+            constraint_switch_proc = constraint_switch_proc.replace("{my_proc_}",cr.get_class_name())
+
+            nconst = len(cr.get_constraints_formula())
+
+            if nconst >=1 :
+
+                str_bools = ""
+                for i in range(nconst):
+                    if i+1 < nconst:
+                        #str_bools += "true, "
+                        str_bools += "false, "
+                    elif i+1 == nconst:
+                        #str_bools += "true"
+                        str_bools += "false"
+
+                constraint_switch_proc += tab4+"const bool constraint_switch_"+cr.get_class_name()+"["+str(nconst)+"] = {"+str_bools+"};\n"
+
+            elif nconst == 0:
+
+                constraint_switch_proc += tab4+"// => There's no constraint imposed on the process - {}\n".format(cr.get_class_name()) 
+
+            constraint_switch_ += constraint_switch_proc + '\n'
+
+        string_buf_main = string_buf_main.replace("{constraint_switch_}",constraint_switch_)
+
+
+        # Output containers: {outputs_}
+        # -----------------
+        outputs_ = ""
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            outputs_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\" OptiMass Outputs>\n"
+            outputs_proc = outputs_proc.replace("{id_}",str(id+1))
+            outputs_proc = outputs_proc.replace("{th_}",th)
+            outputs_proc = outputs_proc.replace("{my_proc_}",cr.get_class_name())
+
+            outputs_proc += tab4+"double om_"+cr.get_class_name()+" = 0; // OptiMass result\n"
+            outputs_proc += tab4+"double ssc_"+cr.get_class_name()+" = 0; // sum squared constraints\n\n"
+
+            outputs_ = outputs_ + outputs_proc
+
+        string_buf_main = string_buf_main.replace("{outputs_}",outputs_)
+
+
+        # Instances of OptiMass: {om_instances_}
+        # ---------------------
+        om_instances_ = ""
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            om_instances_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\">\n"
+            om_instances_proc = om_instances_proc.replace("{id_}",str(id+1))
+            om_instances_proc = om_instances_proc.replace("{th_}",th)
+            om_instances_proc = om_instances_proc.replace("{my_proc_}",cr.get_class_name())
+
+            om_instances_proc += tab4+"OptiMass::{my_proc_} *ptr_{my_proc_} = new OptiMass::{my_proc_};\n".replace("{my_proc_}",cr.get_class_name())
+            om_instances_proc += tab4+"ptr_"+cr.get_class_name()+"->InitContainers();\n" #rev
+            om_instances_proc += tab4+"OptiMass::ProcessTree& proc_tree_{my_proc_} = ptr_{my_proc_}->GetProcessTree();\n".replace("{my_proc_}",cr.get_class_name())
+            om_instances_proc += tab4+"OptiMass::ALMController& alm_controller_{my_proc_} = ptr_{my_proc_}->GetALMController();\n\n".replace("{my_proc_}",cr.get_class_name())
+
+            om_instances_ = om_instances_ + om_instances_proc
+
+        string_buf_main = string_buf_main.replace("{om_instances_}",om_instances_)
+
+
+        # Invisible Particle Masses {invisible_particle_mass_input_} 
+        #---------------------------
+        inv_masses_ = ""
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            inv_masses_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\">\n"
+            inv_masses_proc = inv_masses_proc.replace("{id_}",str(id+1))
+            inv_masses_proc = inv_masses_proc.replace("{th_}",th)
+            inv_masses_proc = inv_masses_proc.replace("{my_proc_}",cr.get_class_name())
+        
+            ninvisible_ptl = 0
+            for effective_invisible in cr.get_optimize_particles():
+                ninvisible_ptl += 1
+                inv_masses_proc += tab4+"ptr_"+cr.get_class_name()+"->SetInitInvisibleMomentum(\""+str(effective_invisible)+"_m\", 0);\n"
+            inv_masses_proc += '\n'
+            inv_masses_ = inv_masses_ + inv_masses_proc  
+
+        string_buf_main = string_buf_main.replace("{inv_masses_}",inv_masses_)
+
+
+        # Loading Events 
+        #----------------
+        # > visible mom assignment {mom_assign_}
+        mom_assign_ = ""
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            if len(self.crs) == 1:
+                proc_tag = ''
+            elif len(self.crs) > 1:
+                proc_tag = '_'+cr.get_class_name()
+            mom_assign_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\" Momenta>\n"
+            mom_assign_proc = mom_assign_proc.replace("{id_}",str(id+1))
+            mom_assign_proc = mom_assign_proc.replace("{th_}",th)
+            mom_assign_proc = mom_assign_proc.replace("{my_proc_}",cr.get_class_name())
+
+            nsubsystem = len(cr.get_final_state_visibles_by_invisible_subsystem())
+
+            for id_subsystem, visibles_subsystem in enumerate(cr.get_final_state_visibles_by_invisible_subsystem()):
+
+                str_sub = ""
+                nvis = len(visibles_subsystem)
+
+                if nsubsystem > 1:
+                    str_sub += tab4+"// {}-th PT conservation subsystem of total {}-subsystem(s) \n".format((id_subsystem+1), nsubsystem)
+                    #str_sub += tab4+"//   Visible momenta \n"
+                    str_visible_sum = ""
+                    for id_vis, visible in enumerate(visibles_subsystem):
+                        str_sub += tab4+visible+proc_tag+".SetXYZM(0, 0, 0, 0);\n"
+                        if (id_vis+1) < nvis:
+                            str_visible_sum += visible+proc_tag+" + "
+                        elif (id_vis+1) == nvis:
+                            str_visible_sum += visible+proc_tag
+                    str_sub += tab4+'pvis{}{} = {};\n'.format(id_subsystem+1, proc_tag, str_visible_sum)
+
+                elif nsubsystem == 1:
+                    #str_sub += tab4 + "//   Visible momenta \n"
+                    str_visible_sum = ""
+                    for id_vis, visible in enumerate(visibles_subsystem):
+                        str_sub += tab4+visible+proc_tag+".SetXYZM(0, 0, 0, 0);\n"
+                        if (id_vis+1) < nvis:
+                            str_visible_sum += visible+proc_tag+" + "
+                        elif (id_vis+1) == nvis:
+                            str_visible_sum += visible+proc_tag
+                    str_sub += tab4+'pvis{} = {};\n'.format(proc_tag, str_visible_sum)
+
+                mom_assign_proc += str_sub + '\n' 
+
+            mom_assign_ += mom_assign_proc
+
+        string_buf_main = string_buf_main.replace("{mom_assign_}", mom_assign_)
+
+
+        # > missing ET assignment {met_assign_}
+        met_assign_ = ""
+
+        for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+
+            if len(self.crs) == 1:
+                proc_tag = ''
+            elif len(self.crs) > 1:
+                proc_tag = '_'+cr.get_class_name()
+            met_assign_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\" Missing ET>\n"
+            met_assign_proc = met_assign_proc.replace("{id_}",str(id+1))
+            met_assign_proc = met_assign_proc.replace("{th_}",th)
+            met_assign_proc = met_assign_proc.replace("{my_proc_}",cr.get_class_name())
+
+            nmet = len(cr.get_invisible_subsystem())
+            str_message = "" 
+            str_met = ""
+
+            for id_ss, ss in enumerate(cr.elem_particle_invisible_subsystem.findall("Subsystem")):
+
+                set_value = ss.get("set_value")
+
+
+                if set_value == "manual":
+
+                    str_message  = tab4+"// (!) <Subsystem ID:{} set_value=\"manual\"> (!)\n".format(str(id_ss+1))
+                    str_message += tab4+"// => The missing ET container can be set as the following:\n"
+                  
+                    if nmet == 1:
+                        str_met = tab4+"met{0}.Set(-pvis{0}.Px(), -pvis{0}.Py());\n\n".format(proc_tag)
+                    elif nmet > 1:
+                        str_met = tab4+"met{0}{1}.Set(-pvis{0}{1}.Px(), -pvis{0}{1}.Py());\n\n".format(str(id_ss+1), proc_tag)
+
+                elif set_value == "automatic":
+                    
+                    str_message  = tab4+"// (!) <Subsystem ID:{} set_value=\"automatic\"> (!)\n".format(str(id_ss+1))
+                    str_message += tab4+"//  => The missingET for this subystem will automatically be set by\n"
+                    str_message += tab4+"//     the negative vector sum of {PT of visible particles in the subsystem}.\n\n"
+
+                else:
+
+                    message = '\n (!) Syntax Error (!)\n' \
+                            + ' ==================== \n' \
+                            + ' The "set_value" - {} of the Subsystem id:{} in the process card - [{}.xml], is not set to the one of the possible options - ["manual", "automatic"].'.format(set_value, str(id_ss+1), self.get_class_name())
+                    sys.exit(message)
+
+
+                met_assign_proc += str_message + str_met
+
+            met_assign_ += met_assign_proc
+
+        string_buf_main = string_buf_main.replace("{met_assign_}", met_assign_)
+
+
+
+        # Running OptiMass {run_optimass_} 
+        #-----------------
+        run_optimass_ = ""
+
+        for id, cr in enumerate(self.crs):
+            
+            th = ordinal_tag(id+1)
+
+            if len(self.crs) == 1:
+                proc_tag = ''
+            elif len(self.crs) > 1:
+                proc_tag = '_'+cr.get_class_name()
+
+            run_optimass_proc = tab4+"// <{id_}{th_}-Process:\"{my_proc_}\" Run OptiMass>\n"
+            run_optimass_proc = run_optimass_proc.replace("{id_}",str(id+1))
+            run_optimass_proc = run_optimass_proc.replace("{th_}",th)
+            run_optimass_proc = run_optimass_proc.replace("{my_proc_}",cr.get_class_name())
+
+            run_optimass_proc += tab4+"ptr_"+cr.get_class_name()+"->RunOptiMass(\n" +\
+                "{run_optimass_args});\n\n"
+
+            run_optimass_args = ""
+            # > add visibles TLorentzVector(s) to run_optimass_args:
+            nvis = len(cr.get_final_state_visibles())
+            nss = len(cr.get_invisible_subsystem())
+
+            for id_ss, vis_ss in enumerate(cr.get_final_state_visibles_by_invisible_subsystem()):
+                nvis_line = len(vis_ss)
+
+                for id_vis, visible in enumerate(vis_ss):
+
+                    if id_vis == 0:
+                        run_optimass_args += tab8+visible+proc_tag+", "
+                    elif id_vis > 0: 
+                        if id_vis%nvis_line == 0:
+                            run_optimass_args += tab8+visible+proc_tag+", "
+                        else:
+                            run_optimass_args += visible+proc_tag+", "
+
+                    if (id_vis+1)%nvis_line == 0:
+                        run_optimass_args += "\n"
+
+            # > add missing ET TVector2(s) for each PT conservation system, to run_optimass_args:
+            nmet = len(cr.get_invisible_subsystem())
+            nmet_line=nmet
+            for id_met, metsystem in enumerate(cr.get_invisible_subsystem()):
+
+                if id_met == 0:
+                    if nmet == 1:
+                        run_optimass_args += tab8+"met{}, ".format(proc_tag)
+                    elif nmet > 1:
+                        run_optimass_args += tab8+"met{}{}, ".format(str(id_met+1), proc_tag)
+
+                elif id_met > 0:
+                    run_optimass_args += "met{}{}, ".format(str(id_met+1), proc_tag)
+
+                if (id_met+1) == nmet_line:
+                    run_optimass_args += "\n"
+
+            # > add constraint switch and references for optimass and L2 norm of constraints
+            run_optimass_args += tab8+"constraint_switch_{0}, om_{0}, ssc_{0}".format(cr.get_class_name())
+            
+            run_optimass_proc = run_optimass_proc.replace("{run_optimass_args}", run_optimass_args)
+
+            run_optimass_ += run_optimass_proc
+
+        string_buf_main = string_buf_main.replace("{run_optimass_}", run_optimass_)
+
+
+
+        # Checking Results {check_results_}
+        #-----------------
+	results_ = ""
+
+	tab4cout = tab4+"std::cout << "
+	endl = " << std::endl;\n"
+
+	results_template = \
+        tab4cout+'"============================================="'+endl +\
+        tab4cout+'" <{id_}{th_}-Process:{my_proc_} Results>  "'+endl +\
+        tab4cout+'"============================================="'+endl +\
+	tab4cout+'" * OptiMass = " << om_{my_proc_} '+endl +\
+        tab4cout+'"---------------------------------------------"'+endl +\
+	tab4cout+'" * Reconstructed Particle Masses: "'+endl +\
+	'{reconstructed_particle_masses_}' +\
+        tab4cout+'"---------------------------------------------"'+endl +\
+        tab4cout+'" * Sum Squared Constr. = " << ssc_{my_proc_} '+endl +\
+        tab4cout+'"---------------------------------------------"'+endl +\
+        tab4cout+'" * ALM Operations & Status"'+endl +\
+        tab4cout+'" 1) # of iter (phase1) = " << alm_controller_{my_proc_}.GetNumberPhase1() '+endl +\
+        tab4cout+'" 2) # of iter (phase2) = " << alm_controller_{my_proc_}.GetNumberPhase2() '+endl +\
+        tab4cout+'"---------------------------------------------"'+endl + '\n'
+
+
+	for id, cr in enumerate(self.crs):
+
+            th = ordinal_tag(id+1)
+	
+            results_proc = results_template
+            
+            results_proc = results_proc.replace('{id_}',str(id+1))
+            results_proc = results_proc.replace('{th_}',th)
+            
+            results_proc = results_proc.replace('{my_proc_}', cr.get_class_name())
+
+            # Checking Masses of Reconstructed Particles after Running OM: {reconstructed_particle_masses_}
+            str_buf = ""
+            nnode = 0
+            for node in cr.get_reconstructed_particles():
+                nnode += 1
+                str_buf += tab4+"std::cout << \""+str(node)+"-mass = \" << proc_tree_{0}.GetSubsystemMass(\"".format(cr.get_class_name())+str(node)+"\") << std::endl;\n"
+
+            results_proc = results_proc.replace("{reconstructed_particle_masses_}", str_buf)
+
+            results_ += results_proc
+
+	string_buf_main = string_buf_main.replace("{results_}", results_)
+
+
+        # Removing OM instances {removing_om_instance_}
+        # ---------------------
+        rm_om_instances_ = ""
+        rm_om_instances_template = tab4+'delete ptr_{my_proc_};\n'
+
+        for id, cr in enumerate(self.crs):
+            rm_om_instances_proc = rm_om_instances_template
+            rm_om_instances_proc = rm_om_instances_proc.replace("{my_proc_}",cr.get_class_name())
+            rm_om_instances_ += rm_om_instances_proc
+
+        string_buf_main = string_buf_main.replace("{rm_om_instances_}", rm_om_instances_)
+
+
+        # Writing output into main.cpp
+        # ----------------------------
+        fmain_s = open(self.proc_dir_root+'/main.cpp','w')
+        fmain_s.write(string_buf_main)
+        fmain_s.close()
+
+
+        pass
+
+
+
+    def make_summary(self):
+
+        msg_summary = \
+        "\n ============================================================================\n" +\
+        " {}* New Process Directory Generated as: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+        " {} => {} {} \n".format(bcolor.CODE_GREEN, self.proc_dir_root, bcolor.ENDC) +\
+        "     {}for the Input Processes: {} {} \n\n".format(bcolor.WARNING, self.proc_tags, bcolor.ENDC) +\
+        " {}* Process Library Installed in: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+        " {} => {} {} \n\n".format(bcolor.CODE_GREEN, self.proc_file_lib, bcolor.ENDC) +\
+        " {}* Main Program Generated: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+        " {} => {} {} \n".format(bcolor.CODE_GREEN, self.proc_file_main, bcolor.ENDC) +\
+        " {} => {} {} \n".format(bcolor.CODE_GREEN, self.proc_file_makefile, bcolor.ENDC) +\
+        " {} => Customize the 'main.cpp' and 'Makefile' for {} \n".format(bcolor.WARNING, bcolor.ENDC) +\
+        " {}    1) loading your own events,{} \n".format(bcolor.WARNING, bcolor.ENDC) +\
+        " {}    2) compiling by the cmd 'make' to generate the executable 'optimass.x',{} \n".format(bcolor.WARNING, bcolor.ENDC) +\
+        " {}    3) running OptiMass by the cmd 'optimass.x'.{} \n".format(bcolor.WARNING, bcolor.ENDC) +\
+        " =============================================================================\n"
+
+        print (msg_summary)
+
+    # End of class BuildProcesses
+
+
+
+
+
+def main():
+    
+
+    # OptiMass Version #rev
+    optimass_version = "2.0"
+
+    # Arguments parser
+    parser = argparse.ArgumentParser(description="(*) OptiMass Process Card Interpreter && C++ Dictionary Code Generator")
+
+    # - optional arguments
+    parser.add_argument('--build', '-b', dest='build', action='store_true', help="Run './optimass --build-lib' to compile and build the main library of the OptiMass@{lib, include} directory.")
+
+    parser.add_argument('--list', '-l', dest='list', action='store_true', default=False, help="Run './optimass --list' to list the process card files (.xml) in ./model_cards/ ") #rev
+
+    parser.add_argument('--show', '-s', dest='show', nargs=1, action='store', default=None, help="Run './optimass --show <myproc>' , to cat the process card file - ./model_cards/<myproc>.xml ") #rev 
+
+    parser.add_argument('--vim', '-v', dest='vim', nargs=1, action='store', default=None, help="Run './optimass --vim <myproc>' , to vim-edit the process card file - ./model_cards/<myproc>.xml ") #rev 
+
+    parser.add_argument('--gen', '-g', nargs='+', dest='gen_process', action='append', help=\
+    "Run './optimass -g <myproc_1> -g <myproc_2> ... --dir <path>/<dirname>' , to interprete the process cards './model_cards/<myproc_N>.xml', \n" + \
+    "and create a related process directory as '<path>/<dirname>' for running the optimass. \n" + \
+    "If '--dir' arg is not provided, '<current path>/proc_<myproc_1><myproc_2>...' is used for the directory's path and name.")
+
+    parser.add_argument('--dir', '-d', dest='target_dir', action='store', help=\
+    "Accompanied with the '-g <myproc>' input, '--dir <path>/<dirname>' set the path and name of the new process directory for the input processes. \n" + \
+    "If not specified, the default path and name (<current path>/proc_<myproc>...) is used." )
+
+    parser.add_argument('--version', dest='version', action='version', version=optimass_version, help="shows the current version of the OptiMass")
+
+    # - positional arguments (irrelevant)
+    parser.add_argument('pos_args', nargs='*', action='append', help=" Just to store some improper positional arguments.")
+
+
+    # Parsing the arguments
+    args = parser.parse_args()
+    #args_dict = args.__dict__
+
+
+    # general message
+    if (args.gen_process is None) and (args.list == False) \
+            and (args.show is None) and (args.vim is None) \
+            and (args.build == False) and (args.target_dir is None) and (args.pos_args == [[]]):
+
+        message = \
+                "\n" +\
+                " =====================================================================================\n" + \
+                "                                    {}OPTIMASS {}{}\n".format(bcolor.BLACK_BG_WHITE,optimass_version,bcolor.ENDC) +\
+                " * Copyright (c) 2021 The OptiMass Development team and contributors. \n" +\
+                "   {}[https://github/hepkosmos/OptiMass]{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) +\
+                " -------------------------------------------------------------------------------------\n" + \
+                " This is the main script for \n" +\
+                "\n" +\
+                "   a) building the OptiMass's main library \n" +\
+                "   b) generating a process directory to run the OptiMass of user-defined processes. \n" + \
+                "\n" +\
+                " To get started, use the following operations: \n" + \
+                " =====================================================================================\n" + \
+                "\n" +\
+                " (1) Building Main OptiMass Library @ (lib,include): \n" +\
+                "\n" +\
+                "   {}$./optimass --build{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) +\
+                "\n" +\
+                " -------------------------------------------------------------------------------------\n" + \
+                "\n" +\
+                " (2) Checking the List of the Process Cards (<myproc>.xml) in '/model_cards/'. \n" +\
+                "\n" +\
+                "   {}$./optimass --list{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) +\
+                "\n" +\
+                " -------------------------------------------------------------------------------------\n" + \
+                "\n" +\
+                " (3) Checking (cat) the Process Card (<myproc>.xml) in '/model_cards/'. \n" +\
+                "\n" +\
+                "   {}$./optimass --show <myproc>{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) +\
+                "\n" +\
+                " -------------------------------------------------------------------------------------\n" + \
+                "\n" +\
+                " (4) Vim-editing the Process Card (<myproc>.xml) in '/model_cards/'. \n" +\
+                "\n" +\
+                "   {}$./optimass --vim <myproc>{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) +\
+                "\n" +\
+                " -------------------------------------------------------------------------------------\n" + \
+                "\n" +\
+                " (5) Interpreting the Process Cards and Generation of Process Directory \n" +\
+                "\n" +\
+                "   {}$./optimass --gen <myproc_1> <myproc_2> ... --dir <path>/<dir_name>{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) + \
+                "\n" + \
+                "   => to interpret the process cards (<myproc_N>.xml) in '/model_cards/', \n" + \
+                "   => and generate a new process directory as the '<path>/<dir_name>'. \n" + \
+                "   => If the '--dir' argument is not provided, \n" +\
+                "        '<current path>/proc_<myproc_1><myproc_2>...' is used by default.  \n" + \
+                "\n" + \
+                " =====================================================================================\n" 
+        sys.exit(message)
+        #sys.exit()
+
+    # --build
+    elif args.build and (args.gen_process is None) and (args.list == False) \
+                    and (args.show is None) and (args.vim is None) \
+                    and (args.target_dir is None) and (args.pos_args == [[]]):
+
+        message = \
+            "\n ===============================================================\n" +\
+            " {}* Starting Compilation and Build of the OptiMass Library ..... {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " ===============================================================\n"
+
+        print (message)
+
+        try:
+            if os.system('cd alm_base; make clean; make uninstall; ./configure; ') != 0:
+                raise Exception()
+        except:
+            message_conf_error = \
+            "\n =================================================\n" +\
+            " {}* Please Check the Error(s) while Configuration. {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " =================================================\n"
+            print (message_conf_error)
+
+        try:
+            if os.system('cd alm_base; make; make install') != 0:
+                raise Exception()
+        except:
+            message_error_make = \
+            "\n =========================================================\n" +\
+            " {}* Please Check the Error(s) while Compilation and Build. {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " =========================================================\n"
+            print (message_error_make)
+        else:
+            os.system('cd ..')
+
+            message_complete = \
+            "\n =========================================================\n" +\
+            " {}* The OptiMass Library Has Been Built and Installed in: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " {}  =>  {}/lib {} \n".format(bcolor.BLACK_BG_WHITE,root_path,bcolor.ENDC) +\
+            " {}* Check Other Relevant Operations with: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " {}  =>  '$./optimass' {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " =========================================================\n"
+            print (message_complete)
+
+    # --list
+    elif args.list  and (args.build == False) and (args.gen_process is None) \
+                    and (args.show is None) and (args.vim is None) \
+                    and (args.target_dir is None) and (args.pos_args == [[]]):
+
+        print ("\n ===================================================")
+        print (" {}* List of the Process Cards in (model_cards/*.xml) {} ".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC))
+        print (" ===================================================")
+        proc_dir=root_path+'/model_cards'
+        list_dir=os.listdir(proc_dir)
+
+        proc_tag_list=[]
+        for file in list_dir:
+            if file.endswith('.xml'):
+                proc_tag_list.append(file.rstrip('.xml'))
+        proc_tag_list.sort()
+
+        for id, proc_tag in enumerate(proc_tag_list):
+            print (" ({0}) {1}".format(str(id+1), proc_tag))
+        print ("")
+
+    # --show / --vim
+    elif ((args.show is not None) or (args.vim is not None)) \
+            and (args.build == False) and (args.gen_process is None) \
+            and (args.list == False) \
+            and (args.target_dir is None) and (args.pos_args == [[]]):
+        
+        if args.show is not None and args.vim is None:
+            process = args.show[0]
+            run_cmd = 'cat '
+        elif args.show is None and args.vim is not None:
+            process = args.vim[0]
+            run_cmd = 'vim '
+        else:
+            print ('\n {}* Use only one of the optional args, {--show <myproc>, --vim <myproc>}, exclusively. {} *{} \n'.format(bcolor.BLACK_BG_WHITE, proc_card, bcolor.ENDC))
+
+        print ('\n {}* Showing the Card of the Process: {} ... {} \n'.format(bcolor.BLACK_BG_WHITE, process, bcolor.ENDC))
+
+        proc_dir=root_path+'/model_cards/'
+        proc_card_file=proc_dir+process+'.xml'
+        
+        # check input if in the list
+        if os.path.exists(proc_card_file):
+            os.system(run_cmd+proc_card_file)
+        else:
+            print (' {} => The Input Process Card: {}, Does Not Exist. {} \n'.format(bcolor.BLACK_BG_WHITE, proc_card_file, bcolor.ENDC))
+
+    # --gen 
+    elif (args.gen_process is not None) \
+            and (args.show is None) and (args.vim is None) \
+            and (args.build == False)  \
+            and (args.list == False) and (args.pos_args == [[]]):
+
+        # Check if the process tags are registered in the ./model_cards/
+        proc_tag_set = set(args.gen_process[0])
+        proc_card_list = []
+        
+        proc_dir=root_path+'/model_cards'
+        list_dir=os.listdir(proc_dir)
+        proc_tag_list=[]
+        for file in list_dir:
+            if file.endswith('.xml'):
+                proc_tag_list.append(file.rstrip('.xml'))
+        
+        proc_tag_list.sort()
+        
+        if not proc_tag_set.issubset(proc_tag_list):
+
+            msg_proc_error = \
+            "\n ==================================================================\n"
+            for id, proc in enumerate(proc_tag_set):
+
+                if proc not in proc_tag_list:
+
+                    proc_x = os.path.abspath(root_path+'/model_cards/'+proc+'.xml')
+                    msg_proc_error+=\
+                    " {}(!) There's no Process Card:  {} \n".format(bcolor.WARNING,bcolor.ENDC) +\
+                    "\n {} => {} {} \n".format(bcolor.OKGREEN, proc_x, bcolor.ENDC) +\
+                    "\n {} * Processes Available in 'model_cards': {} \n".format(bcolor.WARNING, bcolor.ENDC)
+
+                    for id, proc_tag in enumerate(proc_tag_list):
+                        msg_proc_error+=" ({0}) {1}\n".format(str(id+1), proc_tag)
+
+                if id+2 < len(proc_tag_set):
+                    msg_proc_error+='\n'
+
+            msg_proc_error+=\
+            " ==================================================================\n"
+            sys.exit(msg_proc_error)
+
+        # List of the .xml card files for input processes
+        for real_tag in proc_tag_set:
+            
+            real_file = os.path.abspath(proc_dir+'/'+real_tag+'.xml')
+            proc_card_list.append(real_file)
+
+
+        # Initialize a new process directory
+        if args.target_dir is None:
+        
+            # Set the number ID of the directory - 'proc_N_' as max+1
+            list_dir=os.listdir(root_path)
+            proc_num_exist=[]
+            for dir in list_dir:
+                if 'proc_' in dir:
+                    num_temp = dir.lstrip('proc_').split('_')[0]
+                    if num_temp.isdigit():
+                        proc_num_exist.append(num_temp)
+            proc_num_exist.append('00')
+            id_proc_dir = int(max(proc_num_exist))+1
+
+            if id_proc_dir <= 9:
+                id_proc_dir='0'+str(id_proc_dir) 
+            else:
+                id_proc_dir=str(id_proc_dir)
+           
+            # Set a (total) process tag and name&path of process directory
+            procs_tag = ""
+            n_proc = len(args.gen_process[0])
+            for proc in args.gen_process[0]:
+                procs_tag+=proc+'_'
+            procs_tag = procs_tag.rstrip('_')
+            
+            proc_dir_name = 'proc_' + id_proc_dir + '_' + procs_tag  
+            #proc_dir_full = root_path + '/' + proc_dir_name
+            proc_dir_full = os.path.abspath(proc_dir_name)
+
+        elif args.target_dir is not None:
+
+            target_dir = os.path.abspath(args.target_dir)
+
+            # Check if the input proc directory already exists
+            if os.path.exists(target_dir):
+                message_mkdir_error = \
+                "\n ====================================================================\n" +\
+                " {}(!) There Already Exists a Directory with the Same Path and Name (!) {} \n".format(bcolor.WARNING,bcolor.ENDC) +\
+                "\n {} => {} {} \n".format(bcolor.OKGREEN, target_dir, bcolor.ENDC) +\
+                " ====================================================================\n"
+                print (message_mkdir_error)
+
+                msg_ask = \
+                " {}(?) Will You Ignore the Existing Directory and Recreate a New One (?) {}\n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+                " {} => (y or n): {}\n".format(bcolor.CODE_GREEN, bcolor.ENDC)
+
+                if sys.version_info[0]==3:
+                    ans = input(msg_ask).strip("\"").strip("'")
+                else:
+                    ans = raw_input(msg_ask)
+
+                if ans in ['y','yes','Y','YES','Yes']:
+                    os.system('rm -rf {}'.format(target_dir))
+                elif ans in ['n','no','N','NO','No']:
+                    msg_exit=\
+                    "\n{} (!) Chosen to Keep the Existing One and Stop the Operations. (!) {}\n".format(bcolor.WARNING,bcolor.ENDC)
+                    sys.exit(msg_exit)
+                else:
+                    msg_error=\
+                    "\n{} (!) Cannot Recognize Your Answer (!) {}".format(bcolor.WARNING,bcolor.ENDC)
+                    sys.exit(msg_error)
+
+
+            proc_dir_full = target_dir
+
+
+
+        # Make the new process directory (with proc_dir_full)
+        # ---------------------------------------------------
+        try:
+            if os.system('mkdir {}'.format(proc_dir_full)) != 0:
+                raise Exception()
+        except:
+            message_mkdir_error = \
+            "\n ================================================================\n" +\
+            " {}* Please Check the Error(s) in Making a New Process Directory: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+            " {}  {} {} \n".format(bcolor.BLACK_BG_WHITE, proc_dir_full, bcolor.ENDC) +\
+            " =========================================================\n"
+            sys.exit(message_mkdir_error)
+        else:
+            proc_lib = proc_dir_full+'/lib'
+            proc_src = proc_dir_full+'/src'
+            proc_event = proc_dir_full+'/Events'
+            proc_card = proc_dir_full+'/cards'
+
+            os.system('mkdir {}'.format(proc_lib))
+            os.system('mkdir {}'.format(proc_src))
+            os.system('mkdir {}'.format(proc_event))
+            os.system('mkdir {}'.format(proc_card))
+            for card in proc_card_list:
+                os.system('cp {} {}'.format(card, proc_card))
+
+
+        # Build and make-up the process directory
+        # =======================================
+        # Generate process dictionary src and main files
+        # 1) Object for building
+        bp = BuildProcesses(proc_dir_root=proc_dir_full, proc_card_list=proc_card_list)
+
+        # 2) Generating a process header (.h) and a source (.cpp) for each proc
+        for id, proc in enumerate(bp.proc_card_list):
+            bp.gen_header(id)
+            bp.gen_source(id)
+
+        # 3) Building a process library from the dictionary srcs
+        bp.gen_makefile()
+        bp.build_library()
+
+        # 4) Generating main.cpp and Makefile for controlling the all procs together
+        bp.gen_main()
+        
+        # 5) Making a summary
+        bp.make_summary()
+
+
+    else:
+
+        message_arg_error = \
+        "\n ===========================================================================\n" +\
+        " {}* Please Check the Arguments for Generating OptiMass Process Directory by: {} \n".format(bcolor.BLACK_BG_WHITE,bcolor.ENDC) +\
+        " {}  $./optimass {} \n".format(bcolor.CODE_GREEN, bcolor.ENDC) +\
+        " ===========================================================================\n"
+        sys.exit(message_arg_error)
+
+
+    pass
+
+
+if __name__ == '__main__':
+    main()
+
+
+
