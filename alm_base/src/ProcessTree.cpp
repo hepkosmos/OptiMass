@@ -350,7 +350,11 @@ ROOT::Minuit2::MnUserParameters OptiMass::ProcessTree::GetMnUserParameters(){
             it_name != it_name_end;
             ++it_name
         ){
+        //parFitting.SetValue(*it_name + "_m",map_ptl_mass_[*it_name]); //rev
         parFitting.SetValue(*it_name + "_m",map_ptl_mass_[*it_name]);
+	
+		//rev
+		//std::cout << " map_ptl = " << *it_name << " mass = " << map_ptl_mass_[*it_name] << std::endl;
     }
     return parFitting;
 }

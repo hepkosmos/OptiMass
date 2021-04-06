@@ -46,4 +46,58 @@ double CalcMean(const vector<double> &masses) {
     const double buf = std::accumulate(masses.cbegin(), masses.cend(), 0.);
     return buf / masses.size();
 }
+
+
+double CalcMassFromIndice(
+    const std::vector<TLorentzVector *> &vec_visibles,
+    const std::vector<TLorentzVector *> &vec_invisibles) {
+    const double m2 = CalcMassSquareFromIndice(vec_visibles, vec_invisibles);
+    return m2 < 0 ? -std::sqrt(-m2) : std::sqrt(m2);
+}
+
+double CalcPxFromIndice(
+    const std::vector<TLorentzVector *> &vec_visibles,
+    const std::vector<TLorentzVector *> &vec_invisibles) {
+    double px = 0;
+    for (const auto &v : vec_visibles) { px += v->Px(); }
+    for (const auto &v : vec_invisibles) { px += v->Px(); }
+    return px;
+}
+
+double CalcPyFromIndice(
+    const std::vector<TLorentzVector *> &vec_visibles,
+    const std::vector<TLorentzVector *> &vec_invisibles) {
+    double py = 0;
+    for (const auto &v : vec_visibles) { py += v->Py(); }
+    for (const auto &v : vec_invisibles) { py += v->Py(); }
+    return py;
+}
+
+double CalcPzFromIndice(
+    const std::vector<TLorentzVector *> &vec_visibles,
+    const std::vector<TLorentzVector *> &vec_invisibles) {
+    double pz = 0;
+    for (const auto &v : vec_visibles) { pz += v->Pz(); }
+    for (const auto &v : vec_invisibles) { pz += v->Pz(); }
+    return pz;
+}
+
+double CalcEFromIndice(
+    const std::vector<TLorentzVector *> &vec_visibles,
+    const std::vector<TLorentzVector *> &vec_invisibles) {
+    double e = 0;
+    for (const auto &v : vec_visibles) { e += v->E(); }
+    for (const auto &v : vec_invisibles) { e += v->E(); }
+    return e;
+}
+
+double CalcPtFromIndice(
+    const std::vector<TLorentzVector *> &vec_visibles,
+    const std::vector<TLorentzVector *> &vec_invisibles) {
+    TVector2 pt{0, 0};
+    for (const auto &v : vec_visibles) { pt += TVector2{v->Px(), v->Py()}; }
+    for (const auto &v : vec_invisibles) { pt += TVector2{v->Px(), v->Py()}; }
+    return pt.Mod();  // Mod = sqrt(X*X + Y*Y)
+}
+
 }  // namespace OptiMass
