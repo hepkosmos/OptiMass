@@ -18,9 +18,8 @@ general event topologies, providing users with an ability to obtain mass variabl
 
 1. C++ compiler (checked for gcc = 5.4) 
 2. Python (python >= 2.7)
-3. ROOT with MINUIT2 activated [URL](https://root.cern.ch): 
-> Check with `$root-config --has-minuit2`
-5. Autotools and Libtools
+3. [ROOT](https://root.cern.ch) with [MINUIT2](https://seal.web.cern.ch/seal/MathLibs/Minuit2/html/) activated: check activation with `$root-config --has-minuit2`.
+4. Autotools and Libtools
 
 
 #### 2) Downloading OPTIMASS
