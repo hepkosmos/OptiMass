@@ -24,7 +24,7 @@ general event topologies, providing users with an ability to obtain mass variabl
 
 #### 2) Downloading OPTIMASS
 
-> $git clone https://github.com/hepkosmos/OptiMass.git
+  `$git clone https://github.com/hepkosmos/OptiMass.git`
 
 
 #### 3) Checking relevant operations by interpreter
