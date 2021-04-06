@@ -11,17 +11,17 @@ general event topologies, providing users with an ability to obtain mass variabl
 
 
 
-## Installation
+## Installation 
 
 #### 1) Requirements
 
-1. C++ compiler (checked for gcc = 5.4) 
+1. C++ compiler (gcc 5.4+) 
 2. Python (python >= 2.7)
 3. [ROOT](https://root.cern.ch) with [MINUIT2](https://seal.web.cern.ch/seal/MathLibs/Minuit2/html/) activated: check activation with `$root-config --has-minuit2`.
 4. Autotools and Libtools
 
 
-#### 2) Downloading OPTIMASS
+#### 2) Downloading OPTIMASS (ver 2.0)
 
     $git clone https://github.com/hepkosmos/OptiMass.git
 
@@ -63,10 +63,9 @@ simply it can be compiled by `make`, which generate the executable `optimass.x`
     $./optimass.x
 
 
-## Reference and cite
+## Reference and Cite
 When use OPTIMASS, please cite the following reference paper:
 
-*OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints 
+**OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints** 
 [JHEP 1601(2016) 026](https://link.springer.com/article/10.1007%2FJHEP01%282016%29026) [arXiv:1508.00589 [hep-ph]](https://arxiv.org/abs/1508.00589v2)
-
 
