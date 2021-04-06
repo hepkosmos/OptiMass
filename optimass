@@ -1,4 +1,4 @@
-#! /usr/bin/env python 
+#!/usr/bin/env python
 import os, sys, subprocess
 
 # Version check #rev update for py_ver >= 2.7
@@ -1139,13 +1139,15 @@ def main():
         print (message)
 
         try:
-            lib_path = root_path+'/lib'
-            inc_path = root_path+'/include/alm_base'
-            if len(os.listdir(lib_path))+len(inc_path) == 0:
-                if os.system('cd alm_base; ./configure') != 0:
+            lib_path, inc_path = root_path+'/lib', root_path+'/include/alm_base'
+            list_lib = (os.listdir(lib_path))
+            list_inc = (os.listdir(inc_path))
+            len_lib, len_inc = len(list_lib), len(list_inc)
+            if len_lib == 1 and len_inc == 1: #.gitignore
+                if os.system('cd alm_base; ./configure;') != 0:
                     raise Exception()
             else:
-                if os.system('cd alm_base; make clean; make uninstall; ./configure') != 0:
+                if os.system('cd alm_base; make clean; make uninstall; ./configure;') != 0:
                     raise Exception()
         except:
             message_conf_error = \
