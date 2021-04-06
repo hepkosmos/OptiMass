@@ -15,10 +15,12 @@ general event topologies, providing users with an ability to obtain mass variabl
 ## Installation
 
 #### 1) Requirements
-  C++ compiler (checked for gcc = 5.4) 
-  Python (python >= 2.7)
-  ROOT with MINUIT2 activated [URL](https://root.cern.ch): Check with $root-config --has-minuit2
-  Autotools and Libtools
+
+1. C++ compiler (checked for gcc = 5.4) 
+2. Python (python >= 2.7)
+3. ROOT with MINUIT2 activated [URL](https://root.cern.ch): 
+> Check with `$root-config --has-minuit2`
+5. Autotools and Libtools
 
 
 #### 2) Downloading OPTIMASS
