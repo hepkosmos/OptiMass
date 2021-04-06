@@ -24,44 +24,44 @@ general event topologies, providing users with an ability to obtain mass variabl
 
 #### 2) Downloading OPTIMASS
 
-  `$git clone https://github.com/hepkosmos/OptiMass.git`
+    $git clone https://github.com/hepkosmos/OptiMass.git
 
 
 #### 3) Checking relevant operations by interpreter
 
-> $./optimass
+    $./optimass
 
 
 #### 4) Building the core library of OPTIMASS
 
-> $./optimass --build
+    $./optimass --build
 
 
 
 ## Generation of user's own process directory
 
-#### 1) Checking the list of process Cards (<myproc>.xml) in 'model_cards/' dir.
+#### 1) Checking the list of process Cards (`<myproc>.xml`) in `'model_cards/'` dir.
 
-> $./optimass --list
+    $./optimass --list
 
 
-#### 2) Vim-editing a process card (<myproc>.xml) 
+#### 2) Vim-editing a process card (`<myproc>.xml`) 
 
-> $./optimass --vim <myproc>
+    $./optimass --vim <myproc>
 
 
 #### 3) Interpreting working processes and generating a job directory:
 
-> $./optimass --gen <myproc_1> <myproc_2> ... --dir <dir_path_name>
+    $./optimass --gen <myproc_1> <myproc_2> ... --dir <dir_path_name>
 
 
 #### 4) Working in the job directory:
 Entered the process job directory, you can customize the `main.cpp` for loading your own events, 
 simply it can be compiled by `make`, which generate the executable `optimass.x` 
 
-> $cd <dir_path_name> 
-> $make
-> $./optimass.x
+    $cd <dir_path_name> 
+    $make
+    $./optimass.x
 
 
 ## Reference and cite
