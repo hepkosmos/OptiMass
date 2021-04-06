@@ -1,0 +1,81 @@
+####################################################################
+# OptiMass Core SRC (libOptiMass), Header and Library information :
+# libOptiMass.so/dylib should be installed in advance,
+#     1) go to 'alm_base' directory
+#     2) ./configure  (=> Check ROOT installation and MINUIT2 activation. Import env. variables)
+#     3) make & make install (=> libOptiMass at 'lib'. headers at 'include/alm_base/')
+LIBDIR   := lib
+CXXFLAGS := -g -march=native -O2 -Wall -Wextra -std=c++11 -pedantic $(CXXFLAGS)
+LDFLAGS  :=
+LIBS     :=
+AR       := ar crs
+MKDIR    := mkdir -p
+RM       := rm -f
+
+
+# OptiMass
+OPTIMASS := {optimass_dir_root_}
+CXXFLAGS += -I$(OPTIMASS)/include/alm_base
+LIBS     += -L$(OPTIMASS)/lib -lOptiMass
+
+
+# ROOT
+CXXFLAGS += $(shell root-config --cflags)
+LDFLAGS  += $(shell root-config --ldflags)
+LIBS     += $(shell root-config --glibs)
+LIBS     += -lMinuit2
+
+
+# Process
+MODELDIR := src
+MODELSRC := $(wildcard $(MODELDIR)/*.cpp)
+MODELOBJ := $(MODELSRC:%.cpp=%.o)
+MODELSRCh:= $(wildcard $(MODELDIR)/*.h)
+MODELLIB := lib/libOptiMass-models.a
+CXXFLAGS += -I$(MODELDIR)
+
+
+# Main Interface
+EXE    := optimass.x
+EXESRC := main.cpp
+EXEOBJ := $(EXESRC:%.cpp=%.o)
+
+.PHONY: all clean model
+
+all: $(EXE)
+	@if test -f $(EXE);\
+	then \
+	echo "=======================================";\
+	echo "Compilation finished. Run ./optimass.x";\
+	echo "=======================================";\
+	else \
+	echo "========================================================";\
+	echo "Compilation failed. Check your environment and main.cpp";\
+	echo "========================================================";\
+	fi
+
+model: $(MODELLIB)
+
+$(MODELLIB): CXXFLAGS += -fPIC
+$(MODELLIB): $(MODELOBJ)
+	$(MKDIR) $(LIBDIR)
+	$(AR) $@ $^
+	ranlib $@
+
+# For linking ExRootAnalysis / other libraries
+#EXROOT := $(EXROOT)
+#$(EXE): CXXFLAGS += -I$(EXROOT)/ExRootAnalysis 
+#$(EXE): LIBS     += -L$(EXROOT) -lExRootAnalysis
+
+$(EXE): $(MODELOBJ)
+$(EXE): $(EXEOBJ)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+clean_model:
+	$(RM) $(MODELOBJ) $(MODELLIB)
+clean_exe:
+	$(RM) $(EXEOBJ) $(EXE)
+clean_all:
+	$(RM) $(MODELOBJ) $(MODELLIB)
+	$(RM) $(EXEOBJ) $(EXE)
+

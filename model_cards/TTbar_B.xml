@@ -1,0 +1,132 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ProcessCard description="TTbar_B" debug="false" version="1.0">
+    <!-- ======================== -->
+    <!-- Define event decay chain -->
+    <!-- ======================== -->
+    <DecayChains>
+    	<DecayChain>
+    		S - t1 t2 , ( t1 - b1 w1 , (w1 - e1 v1) ) , ( t2 - b2 w2 , (w2 - e2 v2) )
+       	</DecayChain>
+    </DecayChains>
+    <!-- ================================ -->
+    <!-- Target particles to be optimized -->
+    <!-- ================================ -->
+    <ParticleMassFunction>
+        <ParticleGroup mass_function="M2" group_function="mean">
+        	<Particle label="w1" />
+	        <Particle label="w2" />
+        </ParticleGroup>
+    </ParticleMassFunction>
+    <!-- ===================================== -->
+    <!-- Map between particle labels and types -->
+    <!-- ===================================== -->
+    <ParticleLabels>
+        <Particle label="S" name="heavyResonance" />
+        <Particle label="t1" name="top" />
+        <Particle label="t2" name="top" />   	
+    	<Particle label="b1" name="bottom"/>
+        <Particle label="b2" name="bottom" />
+        <Particle label="w1" name="wboson" />
+        <Particle label="w2" name="wboson" />
+        <Particle label="e1" name="electron" />
+        <Particle label="e2" name="electron" />
+        <Particle label="v1" name="neutrino" />
+        <Particle label="v2" name="neutrino" />
+    </ParticleLabels>
+    <!-- ================================= -->
+    <!-- Particle Types and Its Properties -->
+    <!-- ================================= -->
+    <ParticleProperties>
+        <Particle name="top" mass="173." />
+        <Particle name="bottom" mass="4.18"  />
+        <Particle name="wboson" mass="80." />
+        <Particle name="electron" />
+        <Particle name="neutrino" invisible="True" />
+    </ParticleProperties>
+    <!-- ================================ -->
+    <!-- Particle invisible subsystems    -->
+    <!-- ================================ -->
+    <ParticleInvisibleSubsystem>
+        <Subsystem set_value="manual" >
+    	    <Particle label="S" />
+        </Subsystem>
+    </ParticleInvisibleSubsystem>
+    <!-- ============================= -->
+    <!-- ALM Constraints Configuration -->
+    <!-- ============================= -->
+    <Constraints penalty_init="0.1">
+        <Constraint multiplier_init="0" type="equal">
+        	w1.M() - w2.M()
+        </Constraint>
+        <Constraint multiplier_init="0" type="equal">
+        	t1.M() - t2.M()    
+        </Constraint>
+    </Constraints>
+    <!-- ====================== -->
+    <!-- ALM Control Parameters -->
+    <!-- ====================== -->
+    <ALM>
+        <param name="tau_mu" value="0.5" desc="Decreasing multiplier of penalty parameter" />
+        <param name="eta_s" value="1." />
+        <param name="eta_ratio" value="100." desc="used to calculate eta_bar = eta_ratio*eta_s"/>
+        <param name="gamma" value="0.2" />
+        <param name="b_eta0" value="0.5" />
+        <param name="b_eta" value="0.3" />
+        <param name="nIterMax" value="100" />
+    	<code>
+        <![CDATA[
+            double MScale_Parent = 200.;
+			double MScale_Rel = 100.;
+    		double Cmax[2] ={0.001*MScale_Parent,0.001*MScale_Rel};
+            alm_controller_.SetALMControlParam("eta_s", sqrt(Cmax[0]*Cmax[0]+Cmax[1]*Cmax[1]) );
+        ]]>
+    	</code>
+    </ALM>    
+    <!-- ========================= -->
+    <!-- Minuit Control Parameters -->
+    <!-- ========================= -->
+    <Minuit>
+        <param name="maxfcn" value="5000" />
+        <param name="tolerance" value="0.01" />
+        <param name="init_step_size" value="100" />
+        <strategy method="combined">
+        <!--
+        <![CDATA[ 
+            // Migrad
+            ROOT::Minuit2::MnStrategy strategy(2);
+            ROOT::Minuit2::FunctionMinimum min_M = migrad_minimizer.Minimize(ftnn_, params, strategy, maxfcn, tolerance);
+
+            // Simplex -> Migrad
+            ROOT::Minuit2::FunctionMinimum min_S = simplex_minimizer.Minimize(ftnn_, params, strategy, maxfcn, tolerance);
+            ROOT::Minuit2::MnUserParameters paramsBuf = min_S.UserParameters();
+            for(unsigned int i = 0 ; i < 4 * process_tree_.GetNumInvisibles(); ++i){
+                paramsBuf.SetError(i,massScale);
+            }
+            min_S = migrad_minimizer.Minimize(ftnn_, paramsBuf, strategy, maxfcn, tolerance);
+
+            if(min_M.Fval() <= min_S.Fval()){
+                output = min_M.Fval();
+                params = min_M.UserParameters();
+            }else{
+                output = min_S.Fval();
+                params = min_S.UserParameters();
+            }
+        ]]>
+        -->
+        </strategy>
+    </Minuit>
+    <!-- ========================= -->
+    <!-- Minuit Control Parameters -->
+    <!-- ========================= -->
+    <Calc>
+        <code function="CalcProlog">
+        <![CDATA[
+            init_step_size_ = process_tree_.GetEffectiveScale();
+        ]]>
+        </code>
+        <code function="CalcEpilog">
+        <![CDATA[
+        ]]>
+        </code>
+    </Calc>
+</ProcessCard>
