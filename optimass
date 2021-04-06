@@ -1139,7 +1139,9 @@ def main():
         print (message)
 
         try:
-            if os.system('cd alm_base; make clean; make uninstall; ./configure; ') != 0:
+            os.chdir('alm_base')
+            #if os.system('cd alm_base; make clean; make uninstall; ./configure; ') != 0:
+            if os.system('make clean; make uninstall; ./configure; ') != 0:
                 raise Exception()
         except:
             message_conf_error = \
