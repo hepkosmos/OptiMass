@@ -1,4 +1,4 @@
-## OptiMass: : a package for the minimization of kinematic mass functions with constraints
+## OPTIMASS: a package for the minimization of kinematic mass functions with constraints
 ---
 [![License: LGPL v2.1+](https://img.shields.io/badge/License-LGPL%20v2.1+-blue.svg)](https://www.gnu.org/licenses/lgpl.html)
 
@@ -15,24 +15,24 @@ general event topologies, providing users with an ability to obtain mass variabl
 ## Installation
 ---
 
-### 1) Requirements
+#### 1) Requirements
   C++ compiler (checked for gcc = 5.4) 
   Python (python >= 2.7)
   ROOT with MINUIT2 activated [URL](https://root.cern.ch): Check with $root-config --has-minuit2
   Autotools and Libtools
 
 
-### 2) Downloading OPTIMASS
+#### 2) Downloading OPTIMASS
 
 > $git clone https://github.com/hepkosmos/OptiMass.git
 
 
-### 3) Checking Relevant Operations by Interpreter
+#### 3) Checking Relevant Operations by Interpreter
 
 > $./optimass
 
 
-### 4) Building the Core Library of OptiMass
+#### 4) Building the Core Library of OptiMass
 
 > $./optimass --build
 
