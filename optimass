@@ -1049,7 +1049,7 @@ def main():
 
     parser.add_argument('--dir', '-d', dest='target_dir', action='store', help=\
     "Accompanied with the '-g <myproc>' input, '--dir <path>/<dirname>' set the path and name of the new process directory for the input processes. \n" + \
-    "If not specified, the default path and name (<current path>/proc_<myproc>...) is used." )
+    "If not specified, the default path and name (<current path>/proc_#_<myproc>...) is used." )
 
     parser.add_argument('--version', dest='version', action='version', version=optimass_version, help="shows the current version of the OptiMass")
 
@@ -1113,7 +1113,7 @@ def main():
                 "   => to interpret the process cards (<myproc_N>.xml) in '/model_cards/', \n" + \
                 "   => and generate a new process directory as the '<path>/<dir_name>'. \n" + \
                 "   => If the '--dir' argument is not provided, \n" +\
-                "        '<current path>/proc_<myproc_1><myproc_2>...' is used by default.  \n" + \
+                "        '<current path>/proc_#_<myproc_1><myproc_2>...' is used by default.  \n" + \
                 "\n" + \
                 " =====================================================================================\n" 
         sys.exit(message)
@@ -1137,7 +1137,7 @@ def main():
             list_inc = (os.listdir(inc_path))
             len_lib, len_inc = len(list_lib), len(list_inc)
             if len_lib == 1 and len_inc == 1: #.gitignore
-                if os.system('cd alm_base; ./configure;') != 0:
+                if os.system('cd alm_base; autoreconf -ivf -I m4; ./configure;') != 0:
                     raise Exception()
             else:
                 if os.system('cd alm_base; make clean; make uninstall; ./configure;') != 0:

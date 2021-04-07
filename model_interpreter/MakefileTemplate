@@ -16,7 +16,7 @@ RM       := rm -f
 # OptiMass
 OPTIMASS := {optimass_dir_root_}
 CXXFLAGS += -I$(OPTIMASS)/include/alm_base
-LIBS     += -L$(OPTIMASS)/lib -lOptiMass
+LIBS     += -Wl,-rpath,$(OPTIMASS)/lib -L$(OPTIMASS)/lib -lOptiMass
 
 
 # ROOT
