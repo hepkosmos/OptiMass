@@ -21,7 +21,7 @@ private:
 public:
     explicit MassFunction(ProcessTree *process_tree)
         : process_tree_(process_tree) {}
-    MassFunction() {} 
+    MassFunction() {}
     ~MassFunction() {}
 
     void SetFactory(ProcessTree *process_tree, ALMController *alm_controller) {

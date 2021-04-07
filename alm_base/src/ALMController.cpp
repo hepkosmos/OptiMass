@@ -7,16 +7,6 @@ void ALMController::SetMinimizer(ConstraintBase *constraint_base) {
     constraint_base_ = constraint_base;
 }
 
-void ALMController::UseConstraint(int index, bool use) {
-    vec_constraints_using_[index] = use;
-    need_alm_ = false;
-    for (std::vector<bool>::iterator it_chk = vec_constraints_using_.begin(),
-                                     it_chk_end = vec_constraints_using_.end();
-         it_chk != it_chk_end; ++it_chk) {
-        need_alm_ = need_alm_ || (*it_chk);
-    }
-}
-
 void ALMController::CalcConstraints() {
     constraint_base_->CalcConstraints(vec_constraints_, vec_constraints_using_);
 }

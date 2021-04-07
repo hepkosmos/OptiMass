@@ -1,15 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import os, sys, subprocess
 
 # Version check #rev update for py_ver >= 2.7
-if sys.version_info[0] == 2:
-    if sys.version_info[1] > 6:
-        import argparse
-        from model_interpreter.CardReader import CardReader
-    else:
-        print (sys.version)
-        print ("Your Python 2 version is lower than 2.7")
-        sys.exit()
+if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
+    print (sys.version)
+    print ("Your Python 2 version is lower than 2.7")
+    sys.exit()
+else:
+    import argparse
+    from model_interpreter.CardReader import CardReader
 
 # Get the current path of this script as the root of OptiMass,
 root_path = os.getcwd()
@@ -934,19 +933,17 @@ class BuildProcesses(CardReader):
 
         # Checking Results {check_results_}
         #-----------------
-	results_ = ""
-
-	tab4cout = tab4+"std::cout << "
-	endl = " << std::endl;\n"
-
-	results_template = \
+        results_ = ""
+        tab4cout = tab4+"std::cout << "
+        endl = " << std::endl;\n"
+        results_template = \
         tab4cout+'"============================================="'+endl +\
         tab4cout+'" <{id_}{th_}-Process:{my_proc_} Results>  "'+endl +\
         tab4cout+'"============================================="'+endl +\
-	tab4cout+'" * OptiMass = " << om_{my_proc_} '+endl +\
+        tab4cout+'" * OptiMass = " << om_{my_proc_} '+endl +\
         tab4cout+'"---------------------------------------------"'+endl +\
-	tab4cout+'" * Reconstructed Particle Masses: "'+endl +\
-	'{reconstructed_particle_masses_}' +\
+        tab4cout+'" * Reconstructed Particle Masses: "'+endl +\
+        '{reconstructed_particle_masses_}' +\
         tab4cout+'"---------------------------------------------"'+endl +\
         tab4cout+'" * Sum Squared Constr. = " << ssc_{my_proc_} '+endl +\
         tab4cout+'"---------------------------------------------"'+endl +\
@@ -954,17 +951,13 @@ class BuildProcesses(CardReader):
         tab4cout+'" 1) # of iter (phase1) = " << alm_controller_{my_proc_}.GetNumberPhase1() '+endl +\
         tab4cout+'" 2) # of iter (phase2) = " << alm_controller_{my_proc_}.GetNumberPhase2() '+endl +\
         tab4cout+'"---------------------------------------------"'+endl + '\n'
-
-
-	for id, cr in enumerate(self.crs):
-
-            th = ordinal_tag(id+1)
-	
-            results_proc = results_template
+        
+        for id, cr in enumerate(self.crs):
             
+            th = ordinal_tag(id+1)
+            results_proc = results_template
             results_proc = results_proc.replace('{id_}',str(id+1))
             results_proc = results_proc.replace('{th_}',th)
-            
             results_proc = results_proc.replace('{my_proc_}', cr.get_class_name())
 
             # Checking Masses of Reconstructed Particles after Running OM: {reconstructed_particle_masses_}
@@ -977,10 +970,10 @@ class BuildProcesses(CardReader):
             results_proc = results_proc.replace("{reconstructed_particle_masses_}", str_buf)
 
             results_ += results_proc
-
-	string_buf_main = string_buf_main.replace("{results_}", results_)
-
-
+            
+        string_buf_main = string_buf_main.replace("{results_}", results_)
+        
+        
         # Removing OM instances {removing_om_instance_}
         # ---------------------
         rm_om_instances_ = ""

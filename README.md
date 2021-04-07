@@ -7,18 +7,17 @@ general event topologies, providing users with an ability to obtain mass variabl
 Starting from user's process card in `XML` format
 which defining the process information as follows:
 
-    1) decay chains with particle elements at nodes and leaves,
-    2) mass function of the masses of the particles,
-    3) invisible particles to be optimized for the mass function,
-    4) kinematic constraint functions, 
-    5) assignment of independent PT-conserving chains 
-       (for multiple decay chains from independent events),
+1. Decay chains with particle elements at nodes and leaves,
+2. Mass function of the masses of the particles,
+3. Invisible particles to be optimized for the mass function,
+4. Kinematic constraint functions, 
+5. Assignment of independent PT-conserving chains 
+   (for multiple decay chains from independent events),
 
 the interpreter (Python) of OPTIMASS can generate a process job directory including 
 
-    1) process dictionary codes (C++)
-    2) main function code (C++) 
-       for loading events and running OPTIMASS
+1. process dictionary codes (C++)
+2. main function code (C++) for loading events and running OPTIMASS
 
 for a selective set of user processes all together.
 
@@ -30,8 +29,8 @@ OPTIMASS's constrained minimization of the mass function with respect to the inv
 
 #### 1) Requirements
 
-1. C++ compiler (gcc 5.4+) 
-2. Python (python >= 2.7)
+1. C++ compiler (tested with g++ v5.4-7.4) 
+2. Python 2.7
 3. [ROOT](https://root.cern.ch) with [MINUIT2](https://seal.web.cern.ch/seal/MathLibs/Minuit2/html/) activated: check activation with `$root-config --has-minuit2`.
 4. Autotools and Libtools
 

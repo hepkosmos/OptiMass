@@ -12,3 +12,5 @@
 .DS_Store
 *.db
 .localized
+src_test*
+proc_*

@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element, Comment, SubElement, ElementTree, dump
 import re
@@ -150,8 +151,6 @@ class CardReader():
 
         # 6) Check if the total number of registered root particles in the ParticleInvisibleSubsystem = number total 'DecayChain'(s) in the 'DecayChains' #syntax_error:9
         n_root_ptls = self.get_nelem_of_nested_list(subsystems)
-        #print (' n_root_ptls = {} in the subsystems - {}'.format(n_root_ptls, subsystems))
-        #print (' n_decay chains = {}'.format(len(self.elem_decay_chain)) )
         if n_root_ptls != len(self.elem_decay_chain):
             message = '\n (!) Syntax Error (!)\n' \
                     + ' ==================== \n' \
@@ -328,7 +327,6 @@ class CardReader():
         buf = ""
 
         for char in arg:
-            #print (' char = {} at level {}'.format(char, level)) #rev:remove 
             if level < 0:
                 print(' (!) Negative Parenthesis Level Error (!) ')
                 return None        
@@ -350,8 +348,6 @@ class CardReader():
             elif char == ')' and level > 1:
                 buf += char
                 level -= 1
-            #print (' buf = {}'.format(buf)) #rev:remove
-        #print (' buf.strip = {}'.format(buf.strip())) #rev:remove
         output.append(buf.strip())
 
         # Check 2)
@@ -377,10 +373,7 @@ class CardReader():
 
     def __interpret_process_syntax(self):
         for syntax in self.get_process_syntax():
-            self.n_parse = 0 #rev:remove
-            #print ('\n => syntax @ __interprete_process_syntax = {}'.format(syntax))
             self.elem_tree.append(self.__process_parser(syntax)) #rev:0
-            #print (' => elem_tree = {}'.format(self.elem_tree))
 
     def __interpret_particle_label(self):
         for elem_ptl in self.elem_tree.iter("Particle"):
@@ -393,8 +386,6 @@ class CardReader():
             arg should be single process syntax."""
 
         procPtl = arg.split('-')
-        #initPtl = procPtl.pop(0).split(' ').pop(0) #rev:done
-        #initPtl = procPtl.pop(0).strip(' ').split()
         initPtl = procPtl.pop(0).strip(' ')
     
         # Check process syntax: 
@@ -433,34 +424,22 @@ class CardReader():
     def __process_parser(self, arg):
         """ Return Particle element, parsing arg into decay chain tree representation in XML"""
         # translate arg into 
-        self.n_parse += 1
-
         buf = self.str_split_into_effective_branches(arg)
-        #print ('\n N = {}'.format(self.n_parse))
-        #print (' arg @ __proc_parser = {}'.format(arg)) #rev:1
-        #print (' buf @ __proc_parser = {}'.format(buf)) #rev:1
         
         # if arg is single process, pass arg to singleProcessParser
         if(buf[0].strip('() ') == arg.strip('() ')):
-            #print (' arg = {} @ single_proc'.format(arg)) #rev:1
             return self.__single_process_parser(arg.strip('() '))
         # if 
         else:
-            #print (' buf[0] to be single_processed = {}'.format(buf[0]))
             motherPtlElem = self.__single_process_parser(buf.pop(0))
 
-            #print (' buf[1:~] for recursion = {}'.format(buf))
             subPtlElems = map(lambda st:self.__process_parser(st),buf)
 
             for elem_siblings in motherPtlElem.findall("Particle"):
-                #print (' 0. momPtl["label"]   = {}'.format(motherPtlElem.get("label")))
-                #print (' 1. elem_sib["label"] = {}'.format(elem_siblings.get("label")))
                 for elem_siblings_detail in subPtlElems:
-                    #print (' 2. elem_sib_detail["label"] = {}'.format(elem_siblings_detail.get("label")))
                     if elem_siblings.get("label") != None and elem_siblings.get("label") == elem_siblings_detail.get("label"):
                         elem_siblings.extend(elem_siblings_detail.findall("Particle"))
                         sib_ext = [ sib.get('label') for sib in elem_siblings_detail.findall("Particle")]
-                        #print (' 3. Yes, 1.label = 2.label, and extended with sib_ext = {}'.format(sib_ext))
             return motherPtlElem
 
     def __generate_effective_tree(self):        
@@ -476,9 +455,9 @@ class CardReader():
                 for elem_ptl_sub in elem.iter("Particle"):
                     if elem_ptl_sub.find("Particle") == None and elem_ptl_sub.get("invisible") == "True" and not invisible_found:
                         invisible_found = True
-                        print "On effective node: " + elem.get("label") + ", invisible: " + elem_ptl_sub.get("label") + " detected. Removing subelements of "  + elem.get("label") + " on effective tree"
+                        print ("On effective node: " + elem.get("label") + ", invisible: " + elem_ptl_sub.get("label") + " detected. Removing subelements of "  + elem.get("label") + " on effective tree")
                     elif elem_ptl_sub.find("Particle") == None and elem_ptl_sub.get("invisible") == "True" and invisible_found:
-                        print "Error! " + elem_ptl.get("label") + " optimize target with more than two invisible particle selected."
+                        print ("Error! " + elem_ptl.get("label") + " optimize target with more than two invisible particle selected.")
                 if invisible_found:
                     elem.attrib["invisible"] = "True"
                     for elem_sub in elem.findall("Particle"):
@@ -511,8 +490,6 @@ class CardReader():
         output = []
         for elem in self.elem_decay_chain.findall("DecayChain"):
             output.append(elem.text.strip())
-            #print (' => elem, elem.text = {}, {}'.format(elem, elem.text))
-        #print (" => output @ get_process_syntax = {}".format(output))
         return output
 
     def get_invisibles(self):
@@ -532,7 +509,6 @@ class CardReader():
     def get_optimize_particles(self):
         output = []
         for elem_ptl in self.elem_tree.iter("Particle"):
-            #print(elem_ptl.get("optimize_target"))
             if(elem_ptl.find("Particle") != None and elem_ptl.get("optimize_target") == "True"):
                 invisible_found = False
                 for elem_ptl_sub in elem_ptl.iter("Particle"):
@@ -541,7 +517,7 @@ class CardReader():
                         elem_ptl_sub.attrib["disabled"] = "True"
                         invisible_found = True
                     elif elem_ptl_sub.find("Particle") == None and elem_ptl_sub.get("invisible") == "True" and invisible_found:
-                        print "Error! " + elem_ptl.get("label") + " optimize target with more than two invisible particle selected."
+                        print ("Error! " + elem_ptl.get("label") + " optimize target with more than two invisible particle selected.")
             elif elem_ptl.find("Particle") == None and elem_ptl.get("disabled") != "True":
                 for elem_label_info in self.elem_particle_label.findall("Particle"):
                     if elem_ptl.get("label") ==  elem_label_info.get("label") and elem_label_info.get('invisible')=="True":
@@ -554,16 +530,15 @@ class CardReader():
             output_subsystem = []
             for elem_input in elem_subsystem.findall("Particle"):
                 if elem_input.get("label") != None:
-        #            print "Afsda : " + elem_input.get("label")
                     output_subsystem.append(elem_input.get("label"))
         #        for elem_on_tree in self.elem_tree_effective.findall("Particle"):
         #            if elem_on_tree.get("label") == elem_input.get("label"):
         #                for elem_final in elem_on_tree.iter("Particle"):
         #                    if elem_final.find("Particle") == None and elem_final.get("invisible") == "True":
-        #                        print elem_final.get("label")
+        #                        print (elem_final.get("label"))
         #                        if not (elem_final.get("label") in output_subsystem):
         #                            output_subsystem.append(elem_final.get("label"))
-        #    print str(output_subsystem)
+        #    print (str(output_subsystem))
             output.append(output_subsystem)
         return output
     
@@ -618,7 +593,7 @@ class CardReader():
 
     def print_code(self):
         for elem in self.elem_card.iter("code"):
-            print elem.text.strip()
+            print (elem.text.strip())
 
     def print_tree(self):
         indent(self.elem_tree)

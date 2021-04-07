@@ -25,23 +25,20 @@
 // ========================================================================
 // MassMinimizer Constructor
 // ========================================================================
-OptiMass::MassMinimizer::~MassMinimizer() {
 
+OptiMass::MassMinimizer::~MassMinimizer() {
     //delete minimizer_;
     if(debug_)
         std::cout << "bye from MassMinimizer" << std::endl;
-
 }
-
 
 // ========================================================================
 // MassMinimizer Member functions
 // ========================================================================
-void OptiMass::MassMinimizer::InitContainers(){
 
+void OptiMass::MassMinimizer::InitContainers(){
     // Run InitContainter Prolog
     InitContainersProlog();
-
     // Initialize ProcessTree
     process_tree_.ParseProcess();
 
@@ -59,19 +56,14 @@ void OptiMass::MassMinimizer::InitContainers(){
     // Get fitting parameters as MnUserParamters
     user_param_init_ = process_tree_.GetMnUserParameters();
 
-	//std::cout << " user_param_init_ = " << user_param_init_ << std::endl; //rev
-	//user_param_init_.SetValue("v1_y", 20); //rev
-
     // Run InitContainter Epilog
     InitContainersEpilog();
-
 }
 
-
 void OptiMass::MassMinimizer::Calc(){
-
     // Refresh missing ET
     process_tree_.CalcMissingET();
+
     process_tree_.InitializeVisibleMomenta();
 
     // load preconfigured initial condition
@@ -99,6 +91,7 @@ void OptiMass::MassMinimizer::Calc(){
 
         //double outputMigrad, outputSimplex;
         double lagrangeMultiplier, penaltyTerm, mod_c;
+
         bool converged = false;
 
 	    do{
@@ -137,7 +130,6 @@ void OptiMass::MassMinimizer::Calc(){
 
         // if number of iteration saturated, update momenta of last iteration and exit.
         if( !converged ) {
-
             // Update Momentum
             process_tree_.UpdateInvisibleMomenta(output_params.Params());
             // refresh momentum
@@ -153,18 +145,14 @@ void OptiMass::MassMinimizer::Calc(){
 
             output_ -= penaltyTerm;
             output_ -= lagrangeMultiplier;
-
         }
 
     }// end ALM
 
     CalcEpilog();
-
 }
 
-
 void OptiMass::MassMinimizer::TransverseProjection(bool chk){
-
     if(chk){
         for(unsigned int i = 0; i < process_tree_.GetNumInvisibles();++i) {
              user_param_init_.Fix(i+2);
@@ -174,73 +162,5 @@ void OptiMass::MassMinimizer::TransverseProjection(bool chk){
              user_param_init_.Release(i+2);
         } 
     }
-}
-
-
-void OptiMass::MassMinimizer::MinimizeCombined(
-    ROOT::Minuit2::MnUserParameters &params) {
-    // Migrad
-    ROOT::Minuit2::MnStrategy strategy(2);
-    ROOT::Minuit2::FunctionMinimum min_M = migrad_minimizer_.Minimize(
-        ftnn_, params, strategy, maxfcn_, tolerance_);
-
-    // Simplex -> Migrad
-    ROOT::Minuit2::FunctionMinimum min_S = simplex_minimizer_.Minimize(
-        ftnn_, params, strategy, maxfcn_, tolerance_);
-    ROOT::Minuit2::MnUserParameters paramsBuf = min_S.UserParameters();
-    for (unsigned int i = 0; i < 4 * process_tree_.GetNumInvisibles(); ++i) {
-        paramsBuf.SetError(i, init_step_size_);
-    }
-    min_S = migrad_minimizer_.Minimize(ftnn_, paramsBuf, strategy, maxfcn_,
-                                       tolerance_);
-
-    if (min_M.Fval() <= min_S.Fval()) {
-        output_ = min_M.Fval();
-        params = min_M.UserParameters();
-        minimum_valid_ = min_M.IsValid();
-        edm_ = min_M.Edm();
-    } else {
-        output_ = min_S.Fval();
-        params = min_S.UserParameters();
-        minimum_valid_ = min_S.IsValid();
-        edm_ = min_S.Edm();
-    }
-    /*
-        if(min_M.Fval() <= min_S.Fval()){
-            function_minimum_ = min_M;
-        }else{
-            function_minimum_ = min_S;
-        }
-        output = function_minimum_.Fval();
-        params = function_minimum_.UserParameters();
-        minimum_valid_ = function_minimum_.IsValid();
-    */
-}
-
-//rev
-void OptiMass::MassMinimizer::MinimizeMigrad(
-    ROOT::Minuit2::MnUserParameters &params) {
-    // Migrad
-    ROOT::Minuit2::MnStrategy strategy(2);
-    ROOT::Minuit2::FunctionMinimum min_M = migrad_minimizer_.Minimize(
-        ftnn_, params, strategy, maxfcn_, tolerance_);
-
-    output_ = min_M.Fval();
-    params = min_M.UserParameters();
-    minimum_valid_ = min_M.IsValid();
-    edm_ = min_M.Edm();
-}
-//rev
-void OptiMass::MassMinimizer::MinimizeSimplex(
-    ROOT::Minuit2::MnUserParameters &params) {
-    // Simplex
-    ROOT::Minuit2::MnStrategy strategy(2);
-    ROOT::Minuit2::FunctionMinimum min_S = simplex_minimizer_.Minimize(
-        ftnn_, params, strategy, maxfcn_, tolerance_);
-
-    output_ = min_S.Fval();
-    params = min_S.UserParameters();
-    minimum_valid_ = min_S.IsValid();
-    edm_ = min_S.Edm();
 }
 
