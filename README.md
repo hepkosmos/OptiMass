@@ -99,8 +99,8 @@ When you cite OPTIMASS, please use the script below:
 
 ## References
 
-* W.S. Cho et al., OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints, [JHEP 1601(2016) 026](https://link.springer.com/article/10.1007%2FJHEP01%282016%29026), [arXiv:1508.00589 [hep-ph]](https://arxiv.org/abs/1508.00589v2)
+* W.S. Cho et al., OPTIMASS : A Package for the Minimization of Kinematic Mass Functions with Constraints, [JHEP 1601(2016) 026](https://link.springer.com/article/10.1007%2FJHEP01%282016%29026), [arXiv:1508.00589 [hep-ph]](https://arxiv.org/abs/1508.00589v2).
 * W.S. Cho et al., On-shell constrained M2​ variables with applications to mass measurements and topology disambiguation, [JHEP 08 (2014) 070](https://doi.org/10.1007/JHEP08(2014)070), [arXiv:1401.1449](https://arxiv.org/abs/1401.1449v2).
 * C.B. Park, YAM2: Yet another library for the M2 variables using sequential quadratic programming, [Comput. Phys. Commun. 264 (2021) 107967](https://doi.org/10.1016/j.cpc.2021.107967), [arXiv:2007.15537](https://arxiv.org/abs/2007.15537).
-* C. Lester et al., [MT2/Stransverse Mass/Oxbridge Kinetic Library](https://www.hep.phy.cam.ac.uk/~lester/mt2/)  
+* C. Lester et al., [MT2/Stransverse Mass/Oxbridge Kinetic Library](https://www.hep.phy.cam.ac.uk/~lester/mt2/).
 * J. Nocedal and S. Wright, [Numerical Optimization](https://link.springer.com/book/10.1007/978-0-387-40065-5), Springer, 2006.
