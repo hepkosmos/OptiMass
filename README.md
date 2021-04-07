@@ -70,7 +70,7 @@ OPTIMASS's constrained minimization of the mass function with respect to the inv
 
 #### 4) Working in the job directory:
 Entered the process job directory, you can customize the `main.cpp` for loading your own events, 
-simply it can be compiled by `make`, which generate the executable `optimass.x` 
+simply it can be compiled by `make` to generate the executable `optimass.x` 
 
     $cd <dir_path_name> 
     $make
