@@ -1043,9 +1043,9 @@ def main():
     parser.add_argument('--vim', '-v', dest='vim', nargs=1, action='store', default=None, help="Run './optimass --vim <myproc>' , to vim-edit the process card file - ./model_cards/<myproc>.xml ") #rev 
 
     parser.add_argument('--gen', '-g', nargs='+', dest='gen_process', action='append', help=\
-    "Run './optimass -g <myproc_1> -g <myproc_2> ... --dir <path>/<dirname>' , to interprete the process cards './model_cards/<myproc_N>.xml', \n" + \
+    "Run './optimass -g <myproc_1> <myproc_2> ... --dir <path>/<dirname>' , to interprete the process cards './model_cards/<myproc_N>.xml', \n" + \
     "and create a related process directory as '<path>/<dirname>' for running the optimass. \n" + \
-    "If '--dir' arg is not provided, '<current path>/proc_<myproc_1><myproc_2>...' is used for the directory's path and name.")
+    "If '--dir' arg is not provided, '<current path>/proc_#_<myproc_1><myproc_2>...' is used for the directory's path and name.")
 
     parser.add_argument('--dir', '-d', dest='target_dir', action='store', help=\
     "Accompanied with the '-g <myproc>' input, '--dir <path>/<dirname>' set the path and name of the new process directory for the input processes. \n" + \
