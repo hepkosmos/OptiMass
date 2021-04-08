@@ -118,7 +118,7 @@ void OptiMass::CalcTemplate::RunOptiMass(
     this->Calc();
 
 	// Assign OptiMass and SumSquaredConstraints
-	om = sqrt(this->GetOptiMass());
+	om = sqrt(abs(this->GetOptiMass()));
     ssc = this->alm_controller_.GetSumSquaredConstraints();
 
 }

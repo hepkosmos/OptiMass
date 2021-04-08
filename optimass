@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 import os, sys, subprocess
 
-# Version check #rev update for py_ver >= 2.7
+# Version check for py_ver >= 2.7
 if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
     print (sys.version)
     print ("Your Python 2 version is lower than 2.7")
@@ -123,11 +123,11 @@ class BuildProcesses(CardReader):
         string_buf = fsrc_h.read()
         fsrc_h.close()
 
-        # 1) Replacing 'CalcTemplate' with the class name #rev:done
+        # 1) Replacing 'CalcTemplate' with the class name #rev
         # -----------------------------------------------
         string_buf = string_buf.replace("CalcTemplate",self.crs[id].get_class_name())
 
-        # 2) CalcTemplate::RunOptiMass() : {run_optimass_args_} #rev:todo
+        # 2) CalcTemplate::RunOptiMass() : {run_optimass_args_} #rev
         # -----------------------------------------------------
         self.str_run_optimass_args_ = ""
         # > add visibles as TLorentzVector(s):
@@ -253,7 +253,7 @@ class BuildProcesses(CardReader):
         str_buf = str_buf.replace("[","{").replace("]","}").replace("\'","\"")
         string_buf = string_buf.replace("{vec_ptl_invisible_subsystem_label_}",str_buf.strip())
 
-        # 7) {map_minuit_param_} #rev:why "tolerance" is not appeared
+        # 7) {map_minuit_param_} #rev
         str_buf = ""
         for key, value in self.crs[id].get_minuit_dict().items():
             if key == "maxfcn":
@@ -373,7 +373,7 @@ class BuildProcesses(CardReader):
         string_buf = string_buf.replace("{calc_strategy_}",str_calc_strategy.strip())
 
 
-        # CalcTemplate.cc : CalcTemplate::RunOptiMass() : {run_optimass_args} #rev:done
+        # CalcTemplate.cc : CalcTemplate::RunOptiMass() : {run_optimass_args} #rev
         # -------------------------------------------------------------------
         # 1) {run_optimass_args_} using the str_run_optimasas_args_
         string_buf = string_buf.replace("{run_optimass_args_}",self.str_run_optimass_args_.strip())
@@ -1117,7 +1117,6 @@ def main():
                 "\n" + \
                 " =====================================================================================\n" 
         sys.exit(message)
-        #sys.exit()
 
     # --build
     elif args.build and (args.gen_process is None) and (args.list == False) \

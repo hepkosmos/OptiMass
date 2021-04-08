@@ -21,7 +21,7 @@ the interpreter (Python) of OPTIMASS can generate a process job directory includ
 
 for a selective set of user processes all together.
 
-OPTIMASS's constrained minimization of the mass function with respect to the invisible momenta, subject to the kinematic constrains, is implemented by the Augmented Lagrange Method, utilizing the libraries of ROOT with MINUIT2 for a series of unconstrained minimizations required.
+OPTIMASS's constrained minimization of the mass function with respect to the invisible momenta, subject to the kinematic constraints, is implemented by the Augmented Lagrange Method, utilizing the libraries of ROOT with MINUIT2 for a series of unconstrained minimizations required.
 
 
 
