@@ -65,7 +65,7 @@ $(MODELLIB): $(MODELOBJ)
 # For linking ExRootAnalysis / other libraries
 #EXROOT := $(EXROOT)
 #$(EXE): CXXFLAGS += -I$(EXROOT)/ExRootAnalysis 
-#$(EXE): LIBS     += -L$(EXROOT) -lExRootAnalysis
+#$(EXE): LIBS     += -Wl,-rpath,$(EXROOT) -L$(EXROOT) -lExRootAnalysis
 
 $(EXE): $(MODELOBJ)
 $(EXE): $(EXEOBJ)
