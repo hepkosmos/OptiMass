@@ -240,7 +240,7 @@ class CardReader():
         * Args
         1) parents_list: a list with at least one offstring particle label(s) from the self.elem_tree
         
-        * Return: a list of parents particles of the oldest offstring particle (rightmost)   
+        * Return: a list of parent particles of the oldest offstring particle (rightmost)   
         """
 
         oldest_label = parents_list[-1]

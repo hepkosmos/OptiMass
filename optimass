@@ -10,6 +10,11 @@ else:
     import argparse
     from model_interpreter.CardReader import CardReader
 
+
+# OptiMass Version #rev
+optimass_version = "2.0.5"
+
+
 # Get the current path of this script as the root of OptiMass,
 root_path = os.getcwd()
 sys.path.insert(0, root_path)
@@ -1026,9 +1031,6 @@ class BuildProcesses(CardReader):
 
 def main():
     
-
-    # OptiMass Version #rev
-    optimass_version = "2.0"
 
     # Arguments parser
     parser = argparse.ArgumentParser(description="(*) OptiMass Process Card Interpreter && C++ Dictionary Code Generator")
