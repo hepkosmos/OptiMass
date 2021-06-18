@@ -12,7 +12,7 @@ else:
 
 
 # OptiMass Version #rev
-optimass_version = "2.0.5"
+optimass_version = "2.0.6"
 
 
 # Get the current path of this script as the root of OptiMass,
@@ -34,7 +34,6 @@ class bcolor:
     FAIL = '\033[91m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-    
     CODE_GREEN='\x1b[1;32;40m'
     UNDERLINE = '\x1b[4m'
     BLACK_BG_WHITE='\x1b[0;30;47m'
@@ -1073,8 +1072,8 @@ def main():
                 "\n" +\
                 " =====================================================================================\n" + \
                 "                                    {}OPTIMASS {}{}\n".format(bcolor.BLACK_BG_WHITE,optimass_version,bcolor.ENDC) +\
-                " * Copyright (c) 2021 The OptiMass Development team and contributors. \n" +\
-                "   {}[https://github/hepkosmos/OptiMass]{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) +\
+                " * Copyright (c) 2021 The OptiMass Development Team and Contributors. \n" +\
+                "   {}[https://github.com/hepkosmos/OptiMass]{} \n".format(bcolor.CODE_GREEN,bcolor.ENDC) +\
                 " -------------------------------------------------------------------------------------\n" + \
                 " This is the main script for \n" +\
                 "\n" +\
