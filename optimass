@@ -1060,7 +1060,6 @@ def main():
 
     # Parsing the arguments
     args = parser.parse_args()
-    #args_dict = args.__dict__
 
 
     # general message
