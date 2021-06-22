@@ -77,6 +77,7 @@ class BuildProcesses(CardReader):
         # List of CardReader instances for the proc_card_list 
         self.crs = []
 
+        # Checkup of each process card syntax & Loading of CardReader instance
         for proc_card in proc_card_list:
             self.crs.append(CardReader(proc_card))
             self.proc_tags.append(self.crs[-1].get_class_name())
@@ -1333,9 +1334,20 @@ def main():
             proc_dir_full = target_dir
 
 
+        # Build and make-up the process directory
+        # =======================================
+        # Generate process dictionary src and main files
+        # 1) Object for 
+        #   a) checking and loading CardReader for each proc, 
+        #   b) generating a single working directory - <proc_dir> with 
+        #       - dictionary codes (proc_tag.cc, proc_tag.h) of all input processes @ <proc_dir>/src
+        #       - main code (main.cpp,Makefile) @ <proc_dir>/
+        #       - library dir @ <proc_dir>/lib
+        #       - process cards used, @ <proc_dir>/cards
+        #       - a dummy dir for event samples, @ <proc_dir>/Events
+        bp = BuildProcesses(proc_dir_root=proc_dir_full, proc_card_list=proc_card_list)
 
-        # Make the new process directory (with proc_dir_full)
-        # ---------------------------------------------------
+        # 2) Making the new process directory (with proc_dir_full) after initial syntax checkup at CardReader
         try:
             if os.system('mkdir {}'.format(proc_dir_full)) != 0:
                 raise Exception()
@@ -1359,26 +1371,21 @@ def main():
             for card in proc_card_list:
                 os.system('cp {} {}'.format(card, proc_card))
 
+        print (" HERE ?")
 
-        # Build and make-up the process directory
-        # =======================================
-        # Generate process dictionary src and main files
-        # 1) Object for building
-        bp = BuildProcesses(proc_dir_root=proc_dir_full, proc_card_list=proc_card_list)
-
-        # 2) Generating a process header (.h) and a source (.cpp) for each proc
+        # 3) Generating a process header (.h) and a source (.cpp) for each proc
         for id, proc in enumerate(bp.proc_card_list):
             bp.gen_header(id)
             bp.gen_source(id)
 
-        # 3) Building a process library from the dictionary srcs
+        # 4) Building a process library from the dictionary srcs
         bp.gen_makefile()
         bp.build_library()
 
-        # 4) Generating main.cpp and Makefile for controlling the all procs together
+        # 5) Generating main.cpp and Makefile for controlling the all procs together
         bp.gen_main()
         
-        # 5) Making a summary
+        # 6) Making a summary
         bp.make_summary()
 
 
