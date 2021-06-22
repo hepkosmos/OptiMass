@@ -1371,8 +1371,6 @@ def main():
             for card in proc_card_list:
                 os.system('cp {} {}'.format(card, proc_card))
 
-        print (" HERE ?")
-
         # 3) Generating a process header (.h) and a source (.cpp) for each proc
         for id, proc in enumerate(bp.proc_card_list):
             bp.gen_header(id)
