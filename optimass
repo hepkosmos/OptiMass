@@ -12,7 +12,7 @@ else:
 
 
 # OptiMass Version #rev
-optimass_version = "2.0.6"
+optimass_version = "2.0.7"
 
 
 # Get the current path of this script as the root of OptiMass,
